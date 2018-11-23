@@ -39,9 +39,6 @@ public:
 
     ~ LeiAudioPlayer();
 
-    void free();
-
-    void initFFMPEG();
 
     void prepared(const char *dataSource);
 
@@ -53,11 +50,19 @@ public:
 
     void onResume();
 
+    void onDestory();
+
+    void initFFMPEG();
+
+    void initSLES();
+
     int resampleAudioPacket();
 
     int getCurrentSampleRateForOpensles(int sample_rate);
 
-    void initSLES();
+
+private:
+    void free();
 
     void freeSLES();
 };

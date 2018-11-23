@@ -27,6 +27,13 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mPlayer != null)
+            mPlayer.destory();
+    }
+
+    @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_normal_play:

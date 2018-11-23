@@ -402,4 +402,8 @@ void LeiAudioPlayer::freeSLES() {
     LOGD("freeSLES--engineEngine")
 }
 
+void LeiAudioPlayer::onDestory() {
+    free();
+}
+
 

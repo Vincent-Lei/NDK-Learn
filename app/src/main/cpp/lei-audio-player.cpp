@@ -60,3 +60,16 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativeResume(JNIEnv *env, jobject instance
         player->onResume();
 
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_lei_ndk_audio_LeiAudioPlayer_nativeDestory(JNIEnv *env, jobject instance,
+                                                    jlong mNativePtr) {
+
+    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    if (player) {
+        player->onDestory();
+        delete player;
+    }
+    player = NULL;
+}

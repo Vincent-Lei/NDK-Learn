@@ -37,6 +37,10 @@ public class LeiAudioPlayer {
         nativeResume(mNativePtr);
     }
 
+    public void destory() {
+        nativeDestory(mNativePtr);
+    }
+
     public void start() {
         if (TextUtils.isEmpty(mDataSource)) {
             LogUtil.e("dataSource is null");
@@ -66,4 +70,6 @@ public class LeiAudioPlayer {
     private native void nativePause(long mNativePtr);
 
     private native void nativeResume(long mNativePtr);
+
+    private native void nativeDestory(long mNativePtr);
 }
