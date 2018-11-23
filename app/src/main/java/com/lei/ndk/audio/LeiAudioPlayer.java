@@ -29,6 +29,14 @@ public class LeiAudioPlayer {
         nativePrepare(mNativePtr, mDataSource);
     }
 
+    public void pause() {
+        nativePause(mNativePtr);
+    }
+
+    public void resume() {
+        nativeResume(mNativePtr);
+    }
+
     public void start() {
         if (TextUtils.isEmpty(mDataSource)) {
             LogUtil.e("dataSource is null");
@@ -41,9 +49,12 @@ public class LeiAudioPlayer {
         LogUtil.d("--onNativeCallPrepared--");
     }
 
+    private void onNativeCallDataOnLoad(boolean onLoad) {
+        LogUtil.d("--onNativeCallDataOnLoad onLoad = " + onLoad);
+    }
+
     private void onNativeCallError(int code, String msg) {
         LogUtil.d("--onNativeCallError--");
-
     }
 
     private native long nativeInit();
@@ -51,4 +62,8 @@ public class LeiAudioPlayer {
     private native void nativePrepare(long mNativePtr, String dataSource);
 
     private native void nativeStart(long mNativePtr);
+
+    private native void nativePause(long mNativePtr);
+
+    private native void nativeResume(long mNativePtr);
 }

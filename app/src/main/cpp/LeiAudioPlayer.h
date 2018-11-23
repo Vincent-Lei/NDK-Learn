@@ -49,11 +49,17 @@ public:
 
     void start();
 
+    void onPause();
+
+    void onResume();
+
     int resampleAudioPacket();
 
     int getCurrentSampleRateForOpensles(int sample_rate);
 
     void initSLES();
+
+    void freeSLES();
 };
 
 

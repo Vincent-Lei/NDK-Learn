@@ -1,1 +1,4 @@
 javap -classpath app\build\intermediates\javac\debug\compileDebugJavaWithJavac\classes -s com.lei.ndk.nativetest.NativeTestObject
+
+
+javap -classpath app\build\intermediates\javac\debug\compileDebugJavaWithJavac\classes -s com.lei.ndk.audio.LeiAudioPlayer

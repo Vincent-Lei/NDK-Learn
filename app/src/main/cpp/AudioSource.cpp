@@ -38,7 +38,6 @@ int AudioSource::packetPopQueue(AVPacket *costPacket) {
             av_packet_free(&avPacket);
             av_free(avPacket);
             avPacket = NULL;
-            LOGD("从队列里面取出一个AVpacket，还剩下 %d 个", packerQueue.size());
             break;
         } else {
             if (playStatus->isDecodeFinished) {
@@ -65,6 +64,24 @@ void AudioSource::destory() {
         delete dataSource;
         LOGD("free dataSource")
     }
+    AVPacket *avPacket = NULL;
+    while (packerQueue.size() > 0) {
+        avPacket = packerQueue.front();
+        packerQueue.pop();
+        av_packet_free(&avPacket);
+        av_free(avPacket);
+        avPacket = NULL;
+        LOGD("free an AVPacket in packerQueue")
+    }
+
     pthread_cond_destroy(&cond);
     pthread_mutex_destroy(&mutex);
+}
+
+int AudioSource::getQueueSize() {
+    int size = 0;
+    pthread_mutex_lock(&mutex);
+    size = packerQueue.size();
+    pthread_mutex_unlock(&mutex);
+    return size;
 }

@@ -12,6 +12,8 @@ AudioJavaCallBack::AudioJavaCallBack(JNIEnv *env, jobject *object) {
     this->jmid_callPrepared = env->GetMethodID(java_class, "onNativeCallPrepared", "()V");
     this->jmid_callError = env->GetMethodID(java_class, "onNativeCallError",
                                             "(ILjava/lang/String;)V");
+    this->jmid_callDataOnLoad = env->GetMethodID(java_class, "onNativeCallDataOnLoad",
+                                            "(Z)V");
 }
 
 AudioJavaCallBack::~AudioJavaCallBack() {
@@ -39,6 +41,19 @@ void AudioJavaCallBack::callJavaError(int type, int code, char *msg) {
         JNIEnv *jniEnv;
         if (m_thread_jvm->AttachCurrentThread(&jniEnv, NULL) == JNI_OK) {
             jniEnv->CallVoidMethod(java_instance, jmid_callError, code, msg);
+            m_thread_jvm->DetachCurrentThread();
+        }
+    }
+}
+
+void AudioJavaCallBack::callJavaDataOnLoad(int type, bool onLoad) {
+    if (type == MAIN_THREAD_CALL)
+        env->CallVoidMethod(java_instance, jmid_callDataOnLoad, onLoad);
+    else if (type == CHILD_THREAD_CALL) {
+        extern JavaVM *m_thread_jvm;
+        JNIEnv *jniEnv;
+        if (m_thread_jvm->AttachCurrentThread(&jniEnv, NULL) == JNI_OK) {
+            jniEnv->CallVoidMethod(java_instance, jmid_callDataOnLoad, onLoad);
             m_thread_jvm->DetachCurrentThread();
         }
     }

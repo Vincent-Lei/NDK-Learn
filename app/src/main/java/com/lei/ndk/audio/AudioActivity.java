@@ -39,6 +39,17 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
                 }
                 LogUtil.e("no found See_You_Again.mp3");
                 break;
+            case R.id.btn_play_network:
+                mPlayer.setDataSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
+                mPlayer.prepared();
+                mPlayer.start();
+                break;
+            case R.id.btn_pause:
+                mPlayer.pause();
+                break;
+            case R.id.btn_resume:
+                mPlayer.resume();
+                break;
         }
     }
 }

@@ -21,4 +21,5 @@ void AudioPlayStatus::init() {
     isCalledPrepare = false;
     isPreparedError = false;
     isNeedStartAfterPrepared = false;
+    isDataOnLoad = false;
 }

@@ -41,3 +41,22 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativeStart(JNIEnv *env, jobject instance,
     }
 
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_lei_ndk_audio_LeiAudioPlayer_nativePause(JNIEnv *env, jobject instance, jlong mNativePtr) {
+    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    if (player)
+        player->onPause();
+
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_lei_ndk_audio_LeiAudioPlayer_nativeResume(JNIEnv *env, jobject instance,
+                                                   jlong mNativePtr) {
+    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    if (player)
+        player->onResume();
+
+}

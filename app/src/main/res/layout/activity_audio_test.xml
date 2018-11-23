@@ -9,18 +9,29 @@
         android:layout_width="match_parent"
         android:layout_height="40dp"
         android:onClick="onClick"
-        android:text="Normal-Play" />
+        android:text="播放本地" />
 
-    <!--<Button-->
-        <!--android:id="@+id/btn_native_call_java"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="40dp"-->
-        <!--android:onClick="onClick"-->
-        <!--android:text="Native-Call-Java" />-->
-    <!--<Button-->
-        <!--android:id="@+id/btn_customer_and_producer"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="40dp"-->
-        <!--android:onClick="onClick"-->
-        <!--android:text="CUSTOMER_AND_PRODUCER" />-->
+    <Button
+        android:id="@+id/btn_play_network"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="10dp"
+        android:onClick="onClick"
+        android:text="播放网路" />
+
+    <Button
+        android:id="@+id/btn_pause"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="10dp"
+        android:onClick="onClick"
+        android:text="暂停" />
+
+    <Button
+        android:id="@+id/btn_resume"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="10dp"
+        android:onClick="onClick"
+        android:text="播放" />
 </LinearLayout>

@@ -41,7 +41,7 @@ public:
     void packetInQueue(AVPacket *avPacket);
 
     int packetPopQueue(AVPacket *costPacket);
-
+    int getQueueSize();
     void destory();
 };
 

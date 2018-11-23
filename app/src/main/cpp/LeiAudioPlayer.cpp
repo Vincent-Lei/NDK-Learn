@@ -126,7 +126,6 @@ void *thread_cost(void *data) {
 //    av_free(avPacket);
 //    LOGD("处理解码后的数据结束");
     play->initSLES();
-    LOGD("--thread_cost exist--");
     return 0;
 }
 
@@ -148,8 +147,10 @@ void LeiAudioPlayer::free() {
         LOGD("all thread stop")
         audioSource->destory();
         delete audioSource;
+        audioSource = NULL;
         LOGD("delete audioSource")
     }
+    freeSLES();
 }
 
 void LeiAudioPlayer::onPreparedFinished() {
@@ -188,8 +189,22 @@ int LeiAudioPlayer::resampleAudioPacket() {
     int dataSize = 0;
     AVPacket *avPacket = av_packet_alloc();
     while (!audioPlayStatus->isExist && !audioPlayStatus->isCostFinished) {
-        if (audioSource->packetPopQueue(avPacket) != 0)
+        if (audioSource->packetPopQueue(avPacket) != 0) {
+            if (!audioPlayStatus->isDataOnLoad) {
+                LOGE("native load data")
+                audioPlayStatus->isDataOnLoad = true;
+                //call java
+                javaCallBack->callJavaDataOnLoad(CHILD_THREAD_CALL, true);
+            } else {
+                if (audioPlayStatus->isDataOnLoad) {
+                    LOGE("native play data")
+                    audioPlayStatus->isDataOnLoad = false;
+                    //call java
+                    javaCallBack->callJavaDataOnLoad(CHILD_THREAD_CALL, false);
+                }
+            }
             continue;
+        }
         if (avcodec_send_packet(audioSource->pCodecCtx, avPacket) != 0) {
             av_packet_unref(avPacket);
             av_packet_free(&avPacket);
@@ -228,13 +243,11 @@ int LeiAudioPlayer::resampleAudioPacket() {
                     dataSize = nb * out_channels * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
                 }
                 swr_free(&swr_ctx);
-
             }
         }
         av_frame_free(&avFrame);
         av_free(avFrame);
         av_packet_unref(avPacket);
-        LOGD("处理一个解码后的数据包 dataSize：%d", dataSize);
         break;
     }
     av_packet_free(&avPacket);
@@ -246,8 +259,11 @@ void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context) {
     LeiAudioPlayer *player = (LeiAudioPlayer *) (context);
     int bufferSize = player->resampleAudioPacket();
     if (bufferSize > 0) {
-        LOGD("play pcm data size：%d", bufferSize);
-        (*player->pcmBufferQueue)->Enqueue(player->pcmBufferQueue, (char *) player->resampleBuff,bufferSize);
+        (*player->pcmBufferQueue)->Enqueue(player->pcmBufferQueue, (char *) player->resampleBuff,
+                                           bufferSize);
+    } else {
+        LOGE("play finished")
+        player->free();
     }
 }
 
@@ -282,7 +298,8 @@ void LeiAudioPlayer::initSLES() {
     SLDataFormat_PCM pcm = {
             SL_DATAFORMAT_PCM,//播放pcm格式的数据
             2,//2个声道（立体声）
-            static_cast<SLuint32>(getCurrentSampleRateForOpensles(audioSource->codecpar->sample_rate)),//44100hz的频率
+            static_cast<SLuint32>(getCurrentSampleRateForOpensles(
+                    audioSource->codecpar->sample_rate)),//44100hz的频率
             SL_PCMSAMPLEFORMAT_FIXED_16,//位数 16位
             SL_PCMSAMPLEFORMAT_FIXED_16,//和位数一致就行
             SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,//立体声（前左前右）
@@ -357,6 +374,44 @@ int LeiAudioPlayer::getCurrentSampleRateForOpensles(int sample_rate) {
             rate = SL_SAMPLINGRATE_44_1;
     }
     return rate;
+}
+
+void LeiAudioPlayer::onPause() {
+    if (pcmPlayerPlay) {
+        (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PAUSED);
+    }
+    LOGD("native pause")
+}
+
+void LeiAudioPlayer::onResume() {
+    if (pcmPlayerPlay)
+        (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PLAYING);
+    LOGD("native resume")
+}
+
+void LeiAudioPlayer::freeSLES() {
+    LOGD("prepare freeSLES")
+    if (pcmPlayerPlay) {
+        (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_STOPPED);
+    }
+    if (pcmPlayerObject)
+        (*pcmPlayerObject)->Destroy(pcmPlayerObject);
+    pcmPlayerObject = NULL;
+    pcmPlayerPlay = NULL;
+    pcmBufferQueue = NULL;
+    LOGD("freeSLES--pcmPlayerObject")
+
+    if (outputMixObject)
+        (*outputMixObject)->Destroy(outputMixObject);
+    outputMixObject = NULL;
+    outputMixEnvironmentalReverb = NULL;
+    LOGD("freeSLES--outputMixObject")
+
+    if (engineObject)
+        (*engineObject)->Destroy(engineObject);
+    engineObject = NULL;
+    engineEngine = NULL;
+    LOGD("freeSLES--engineEngine")
 }
 
 
