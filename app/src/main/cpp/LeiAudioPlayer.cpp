@@ -113,18 +113,6 @@ void *thread_decoder(void *data) {
 
 void *thread_cost(void *data) {
     LeiAudioPlayer *play = (LeiAudioPlayer *) (data);
-//    AudioSource *audioSource = play->audioSource;
-//    AVPacket *avPacket = av_packet_alloc();
-//    while (!play->audioPlayStatus->isExist && !play->audioPlayStatus->isCostFinished) {
-//        if (audioSource->packetPopQueue(avPacket) == 0) {
-//            //处理数据
-//            LOGD("处理当前解码的数据...");
-//            av_packet_unref(avPacket);
-//        }
-//    }
-//    av_packet_free(&avPacket);
-//    av_free(avPacket);
-//    LOGD("处理解码后的数据结束");
     play->initSLES();
     return 0;
 }
@@ -147,7 +135,7 @@ void LeiAudioPlayer::free() {
         LOGD("all thread stop")
         audioSource->destory();
         delete audioSource;
-        audioSource = NULL;
+//        audioSource = NULL;
         LOGD("delete audioSource")
     }
     freeSLES();
@@ -263,7 +251,7 @@ void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context) {
                                            bufferSize);
     } else {
         LOGE("play finished")
-        player->free();
+//        player->free();
     }
 }
 
