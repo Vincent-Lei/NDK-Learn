@@ -1,8 +1,11 @@
 package com.lei.ndk.audio;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 
 import com.lei.ndk.util.LogUtil;
+
 
 /**
  * Created by Vincent.Lei on 2018/11/21.
@@ -10,8 +13,19 @@ import com.lei.ndk.util.LogUtil;
  * Note：
  */
 public class LeiAudioPlayer {
+    private static final Handler mHandler = new Handler(Looper.getMainLooper());
     private long mNativePtr;
     private String mDataSource;
+
+    public void setCallBack(ICallBack mCallBack) {
+        this.mCallBack = mCallBack;
+    }
+
+    private ICallBack mCallBack;
+
+    public interface ICallBack {
+        void onDurationChanged(int current, int all);
+    }
 
     public LeiAudioPlayer() {
         mNativePtr = nativeInit();
@@ -59,6 +73,17 @@ public class LeiAudioPlayer {
 
     private void onNativeCallError(int code, String msg) {
         LogUtil.d("--onNativeCallError--");
+    }
+
+    public void onNativeCallDuration(final int current, final int all) {
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (mCallBack != null) {
+                    mCallBack.onDurationChanged(current, all);
+                }
+            }
+        });
     }
 
     private native long nativeInit();

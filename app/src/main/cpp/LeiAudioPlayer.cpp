@@ -46,6 +46,8 @@ void *thread_prepared(void *data) {
         if (audioSource->pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
             audioSource->streamIndex = i;
             audioSource->codecpar = audioSource->pFormatCtx->streams[i]->codecpar;
+            audioSource->duration = audioSource->pFormatCtx->duration / AV_TIME_BASE;
+            audioSource->time_base = audioSource->pFormatCtx->streams[i]->time_base;
             break;
         }
     }
@@ -229,6 +231,13 @@ int LeiAudioPlayer::resampleAudioPacket() {
 
                     int out_channels = av_get_channel_layout_nb_channels(AV_CH_LAYOUT_STEREO);
                     dataSize = nb * out_channels * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
+
+                    audioSource->current_time = avFrame->pts * av_q2d(audioSource->time_base);
+                    if (audioSource->current_time < audioSource->clock)
+                        audioSource->current_time = audioSource->clock;
+                    audioSource->clock = audioSource->current_time;
+
+
                 }
                 swr_free(&swr_ctx);
             }
@@ -247,6 +256,15 @@ void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context) {
     LeiAudioPlayer *player = (LeiAudioPlayer *) (context);
     int bufferSize = player->resampleAudioPacket();
     if (bufferSize > 0) {
+        player->audioSource->clock +=
+                bufferSize / ((double) (player->audioSource->codecpar->sample_rate * 2 * 2));
+        if (player->audioSource->clock - player->audioSource->last_clock >= 0.5) {
+            player->audioSource->last_clock = player->audioSource->clock;
+            LOGD("%lf/%d", player->audioSource->clock, player->audioSource->duration);
+            player->javaCallBack->callJavaDuration(CHILD_THREAD_CALL,
+                                                   static_cast<int>(player->audioSource->clock),
+                                                   player->audioSource->duration);
+        }
         (*player->pcmBufferQueue)->Enqueue(player->pcmBufferQueue, (char *) player->resampleBuff,
                                            bufferSize);
     } else {

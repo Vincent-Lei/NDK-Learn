@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.TextView;
 
 import com.lei.ndk.R;
 import com.lei.ndk.util.FileUtil;
@@ -16,14 +17,17 @@ import java.io.File;
  * Title：
  * Note：
  */
-public class AudioActivity extends AppCompatActivity implements View.OnClickListener {
+public class AudioActivity extends AppCompatActivity implements View.OnClickListener, LeiAudioPlayer.ICallBack {
     private LeiAudioPlayer mPlayer;
+    TextView textView_time;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_audio_test);
+        textView_time = findViewById(R.id.tv_time);
         mPlayer = new LeiAudioPlayer();
+        mPlayer.setCallBack(this);
     }
 
     @Override
@@ -58,5 +62,26 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
                 mPlayer.resume();
                 break;
         }
+    }
+
+    @Override
+    public void onDurationChanged(int current, int all) {
+        textView_time.setText(formatTime(current) + "/" + formatTime(all));
+    }
+
+    private String formatTime(int second) {
+        StringBuilder stringBuilder = new StringBuilder();
+        int minute = second / 60;
+        if (minute < 10)
+            stringBuilder.append("0").append(minute);
+        else
+            stringBuilder.append(minute);
+        stringBuilder.append(" : ");
+        int secondLeft = second % 60;
+        if (secondLeft < 10)
+            stringBuilder.append("0").append(secondLeft);
+        else
+            stringBuilder.append(secondLeft);
+        return stringBuilder.toString();
     }
 }

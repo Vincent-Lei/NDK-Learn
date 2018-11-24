@@ -32,6 +32,11 @@ public:
     AVFormatContext *pFormatCtx;
     AVCodecContext *pCodecCtx;
     AVCodecParameters *codecpar;
+    int duration = 0;
+    AVRational time_base;
+    double current_time = 0;
+    double clock = 0;
+    double last_clock = 0;
 
 public:
     AudioSource(const char *dataSource, AudioPlayStatus *playStatus);
@@ -41,7 +46,9 @@ public:
     void packetInQueue(AVPacket *avPacket);
 
     int packetPopQueue(AVPacket *costPacket);
+
     int getQueueSize();
+
     void destory();
 };
 

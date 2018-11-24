@@ -19,6 +19,7 @@ public:
     jmethodID jmid_callPrepared = NULL;
     jmethodID jmid_callError = NULL;
     jmethodID jmid_callDataOnLoad = NULL;
+    jmethodID jmid_callDuration = NULL;
 public:
     AudioJavaCallBack(JNIEnv *env, jobject *object);
 
@@ -29,6 +30,8 @@ public:
     void callJavaError(int type, int code, char *msg);
 
     void callJavaDataOnLoad(int type, bool onLoad);
+
+    void callJavaDuration(int type, int current,int all);
 };
 
 
