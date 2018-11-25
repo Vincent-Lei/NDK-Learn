@@ -17,6 +17,7 @@ public:
     AudioPlayStatus *audioPlayStatus = NULL;
     AudioSource *audioSource = NULL;
     uint8_t *resampleBuff = NULL;
+    pthread_mutex_t mutex_seek;
 
     // 引擎接口
     SLObjectItf engineObject = NULL;
@@ -60,11 +61,13 @@ public:
 
     int getCurrentSampleRateForOpensles(int sample_rate);
 
+    void seek(int64_t secTarget);
+
 
 private:
-    void free();
+    void stop();
 
-    void freeSLES();
+    void stopSLES();
 };
 
 

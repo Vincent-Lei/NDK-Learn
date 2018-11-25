@@ -18,8 +18,11 @@ import java.io.File;
  * Note：
  */
 public class AudioActivity extends AppCompatActivity implements View.OnClickListener, LeiAudioPlayer.ICallBack {
+    private static final String NET_SOURCE = "http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3";
     private LeiAudioPlayer mPlayer;
     TextView textView_time;
+    int currentSec;
+    String currentSource;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -41,19 +44,10 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_normal_play:
-                File file = FileUtil.getLocalAssetFile(this, "See_You_Again.mp3");
-                if (file != null && file.exists()) {
-                    mPlayer.setDataSource(file.getAbsolutePath());
-                    mPlayer.prepared();
-                    mPlayer.start();
-                    return;
-                }
-                LogUtil.e("no found See_You_Again.mp3");
+                playLocal();
                 break;
             case R.id.btn_play_network:
-                mPlayer.setDataSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
-                mPlayer.prepared();
-                mPlayer.start();
+                playNetWork();
                 break;
             case R.id.btn_pause:
                 mPlayer.pause();
@@ -61,12 +55,43 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
             case R.id.btn_resume:
                 mPlayer.resume();
                 break;
+            case R.id.btn_seek:
+                mPlayer.seek(currentSec + 5);
+                break;
         }
+    }
+
+    private void playNetWork() {
+        mPlayer.setDataSource(NET_SOURCE);
+        mPlayer.prepared();
+        mPlayer.start();
+        currentSource = NET_SOURCE;
+    }
+
+    private void playLocal() {
+        File file = FileUtil.getLocalAssetFile(this, "See_You_Again.mp3");
+        if (file != null && file.exists()) {
+            mPlayer.setDataSource(file.getAbsolutePath());
+            mPlayer.prepared();
+            mPlayer.start();
+            currentSource = file.getAbsolutePath();
+            return;
+        }
+        LogUtil.e("no found See_You_Again.mp3");
     }
 
     @Override
     public void onDurationChanged(int current, int all) {
+        currentSec = current;
         textView_time.setText(formatTime(current) + "/" + formatTime(all));
+    }
+
+    @Override
+    public void onPlayFinished() {
+        if (NET_SOURCE.equals(currentSource))
+            playLocal();
+        else
+            playNetWork();
     }
 
     private String formatTime(int second) {

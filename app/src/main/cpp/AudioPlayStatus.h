@@ -17,6 +17,7 @@ public:
     bool isPreparedError;
     bool isNeedStartAfterPrepared;
     bool isDataOnLoad;
+    bool isSeek;
 public:
     AudioPlayStatus();
 

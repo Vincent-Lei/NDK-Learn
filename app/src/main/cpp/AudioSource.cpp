@@ -51,29 +51,25 @@ int AudioSource::packetPopQueue(AVPacket *costPacket) {
     return result;
 }
 
-void AudioSource::destory() {
+void AudioSource::release() {
     if (pFormatCtx != NULL) {
+        avformat_close_input(&pFormatCtx);
         avformat_free_context(pFormatCtx);
+        pFormatCtx = NULL;
         LOGD("free pFormatCtx")
     }
     if (pCodecCtx != NULL) {
         avcodec_free_context(&pCodecCtx);
+        pCodecCtx = NULL;
         LOGD("free pCodecCtx")
     }
     if (dataSource != NULL) {
         delete dataSource;
         LOGD("free dataSource")
-    }
-    AVPacket *avPacket = NULL;
-    while (packerQueue.size() > 0) {
-        avPacket = packerQueue.front();
-        packerQueue.pop();
-        av_packet_free(&avPacket);
-        av_free(avPacket);
-        avPacket = NULL;
-        LOGD("free an AVPacket in packerQueue")
+        dataSource = NULL;
     }
 
+    clearAVPackgetQueue();
     pthread_cond_destroy(&cond);
     pthread_mutex_destroy(&mutex);
 }
@@ -84,4 +80,22 @@ int AudioSource::getQueueSize() {
     size = packerQueue.size();
     pthread_mutex_unlock(&mutex);
     return size;
+}
+
+void AudioSource::noticeDecodeFinished() {
+    pthread_cond_signal(&cond);
+}
+
+void AudioSource::clearAVPackgetQueue() {
+    pthread_mutex_lock(&mutex);
+    AVPacket *avPacket = NULL;
+    while (!packerQueue.empty()) {
+        avPacket = packerQueue.front();
+        packerQueue.pop();
+        av_packet_free(&avPacket);
+        av_free(avPacket);
+        avPacket = NULL;
+    }
+    pthread_mutex_unlock(&mutex);
+
 }

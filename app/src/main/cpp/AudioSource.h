@@ -12,6 +12,7 @@
 #include "native-log.h"
 
 #define AUDIO_STREAM_NO_FOUND -1
+#define MAX_QUEUE_SIZE 40
 extern "C" {
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
@@ -24,7 +25,7 @@ public:
     int streamIndex = AUDIO_STREAM_NO_FOUND;
     pthread_t pthread_prepare;
     pthread_t pthread_decoder;
-    pthread_t pthread_cost;
+    pthread_t pthread_SLES;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
     std::queue<AVPacket *> packerQueue;
@@ -45,11 +46,15 @@ public:
 
     void packetInQueue(AVPacket *avPacket);
 
+    void noticeDecodeFinished();
+
     int packetPopQueue(AVPacket *costPacket);
 
     int getQueueSize();
 
-    void destory();
+    void release();
+
+    void clearAVPackgetQueue();
 };
 
 

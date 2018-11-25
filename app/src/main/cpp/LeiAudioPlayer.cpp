@@ -2,11 +2,13 @@
 // Created by Android on 2018/11/21.
 //
 
+#include <unistd.h>
 #include "LeiAudioPlayer.h"
 
 LeiAudioPlayer::LeiAudioPlayer(JNIEnv *env, jobject *object) {
     javaCallBack = new AudioJavaCallBack(env, object);
     audioPlayStatus = new AudioPlayStatus();
+    pthread_mutex_init(&mutex_seek, NULL);
 }
 
 LeiAudioPlayer::~LeiAudioPlayer() {
@@ -18,6 +20,23 @@ void LeiAudioPlayer::initFFMPEG() {
     avformat_network_init();
 }
 
+int avformat_callback(void *ctx) {
+    LeiAudioPlayer *play = (LeiAudioPlayer *) (ctx);
+    if (play->audioPlayStatus->isExist) {
+        return AVERROR_EOF;
+    }
+    return 0;
+}
+
+void LeiAudioPlayer::onPreparedFinished() {
+    audioPlayStatus->isPrepared = true;
+    javaCallBack->callJavaPrepared(CHILD_THREAD_CALL);
+    if (!audioPlayStatus->isPreparedError && audioPlayStatus->isNeedStartAfterPrepared) {
+        //直接播放
+        start();
+    }
+}
+
 void *thread_prepared(void *data) {
     LeiAudioPlayer *play = (LeiAudioPlayer *) (data);
     if (play->audioPlayStatus->isExist) {
@@ -27,6 +46,8 @@ void *thread_prepared(void *data) {
     }
     AudioSource *audioSource = play->audioSource;
     audioSource->pFormatCtx = avformat_alloc_context();
+    audioSource->pFormatCtx->interrupt_callback.callback = avformat_callback;
+    audioSource->pFormatCtx->interrupt_callback.opaque = play;
     if (audioSource->pFormatCtx == NULL) {
         play->audioPlayStatus->isPreparedError = true;
         LOGE("can not init AVFormatContext");
@@ -88,8 +109,22 @@ void *thread_decoder(void *data) {
     AudioSource *audioSource = play->audioSource;
     AVPacket *avPacket = NULL;
     while (!play->audioPlayStatus->isExist) {
+
+        if (play->audioPlayStatus->isSeek) {
+            continue;
+        }
+        if (audioSource->getQueueSize() > MAX_QUEUE_SIZE) {
+            usleep(50 * 1000);
+            continue;
+        }
+
         avPacket = av_packet_alloc();
-        if (av_read_frame(audioSource->pFormatCtx, avPacket) == 0) {
+
+        pthread_mutex_lock(&play->mutex_seek);
+        int ret = av_read_frame(audioSource->pFormatCtx, avPacket);
+        pthread_mutex_unlock(&play->mutex_seek);
+
+        if (ret == 0) {
             if (avPacket->stream_index == audioSource->streamIndex) {
                 //数据进入队列
                 audioSource->packetInQueue(avPacket);
@@ -107,73 +142,18 @@ void *thread_decoder(void *data) {
             break;
         }
     }
-    audioSource->packetInQueue(NULL);
+    audioSource->noticeDecodeFinished();
     LOGD("解码结束");
     return 0;
 
 }
 
-void *thread_cost(void *data) {
+void *thread_SLES(void *data) {
     LeiAudioPlayer *play = (LeiAudioPlayer *) (data);
     play->initSLES();
     return 0;
 }
 
-void LeiAudioPlayer::prepared(const char *dataSource) {
-    free();
-    audioPlayStatus->init();
-    audioSource = new AudioSource(dataSource, audioPlayStatus);
-    audioPlayStatus->isCalledPrepare = true;
-    pthread_create(&audioSource->pthread_prepare, NULL, thread_prepared, this);
-}
-
-void LeiAudioPlayer::free() {
-    if (audioSource != NULL) {
-        audioPlayStatus->isExist = true;
-        audioPlayStatus->isNeedStartAfterPrepared = false;
-        pthread_join(audioSource->pthread_prepare, NULL);
-        pthread_join(audioSource->pthread_decoder, NULL);
-        pthread_join(audioSource->pthread_cost, NULL);
-        LOGD("all thread stop")
-        audioSource->destory();
-        delete audioSource;
-//        audioSource = NULL;
-        LOGD("delete audioSource")
-    }
-    freeSLES();
-}
-
-void LeiAudioPlayer::onPreparedFinished() {
-    audioPlayStatus->isPrepared = true;
-    javaCallBack->callJavaPrepared(CHILD_THREAD_CALL);
-    if (!audioPlayStatus->isPreparedError && audioPlayStatus->isNeedStartAfterPrepared) {
-        //直接播放
-        start();
-    }
-}
-
-void LeiAudioPlayer::start() {
-    if (audioPlayStatus->isExist) {
-        LOGE("can not start after exist");
-        return;
-    }
-    if (!audioPlayStatus->isCalledPrepare) {
-        LOGE("please call prepare first");
-        return;
-    }
-    if (audioPlayStatus->isStarted) {
-        LOGE("already started");
-        return;
-    }
-
-    if (!audioPlayStatus->isPrepared) {
-        LOGE("wait Prepared and will start after Prepared");
-        audioPlayStatus->isNeedStartAfterPrepared = true;
-        return;
-    }
-    pthread_create(&audioSource->pthread_decoder, NULL, thread_decoder, this);
-    pthread_create(&audioSource->pthread_cost, NULL, thread_cost, this);
-}
 
 int LeiAudioPlayer::resampleAudioPacket() {
     int dataSize = 0;
@@ -260,7 +240,7 @@ void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context) {
                 bufferSize / ((double) (player->audioSource->codecpar->sample_rate * 2 * 2));
         if (player->audioSource->clock - player->audioSource->last_clock >= 0.5) {
             player->audioSource->last_clock = player->audioSource->clock;
-            LOGD("%lf/%d", player->audioSource->clock, player->audioSource->duration);
+//            LOGD("%lf/%d", player->audioSource->clock, player->audioSource->duration);
             player->javaCallBack->callJavaDuration(CHILD_THREAD_CALL,
                                                    static_cast<int>(player->audioSource->clock),
                                                    player->audioSource->duration);
@@ -269,7 +249,8 @@ void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context) {
                                            bufferSize);
     } else {
         LOGE("play finished")
-//        player->free();
+        if (!player->audioPlayStatus->isExist)
+            player->javaCallBack->callJavaFinished(CHILD_THREAD_CALL);
     }
 }
 
@@ -332,6 +313,7 @@ void LeiAudioPlayer::initSLES() {
 //    获取播放状态接口
     (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PLAYING);
     pcmBufferCallBack(pcmBufferQueue, this);
+    audioPlayStatus->isStarted = true;
 }
 
 int LeiAudioPlayer::getCurrentSampleRateForOpensles(int sample_rate) {
@@ -395,33 +377,119 @@ void LeiAudioPlayer::onResume() {
     LOGD("native resume")
 }
 
-void LeiAudioPlayer::freeSLES() {
+void LeiAudioPlayer::stopSLES() {
     LOGD("prepare freeSLES")
     if (pcmPlayerPlay) {
         (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_STOPPED);
     }
-    if (pcmPlayerObject)
+    if (pcmPlayerObject) {
         (*pcmPlayerObject)->Destroy(pcmPlayerObject);
-    pcmPlayerObject = NULL;
-    pcmPlayerPlay = NULL;
-    pcmBufferQueue = NULL;
-    LOGD("freeSLES--pcmPlayerObject")
+        pcmPlayerObject = NULL;
+        pcmPlayerPlay = NULL;
+        pcmBufferQueue = NULL;
+        LOGD("freeSLES--pcmPlayerObject")
+    }
 
-    if (outputMixObject)
+    if (outputMixObject) {
         (*outputMixObject)->Destroy(outputMixObject);
-    outputMixObject = NULL;
-    outputMixEnvironmentalReverb = NULL;
-    LOGD("freeSLES--outputMixObject")
+        outputMixObject = NULL;
+        outputMixEnvironmentalReverb = NULL;
+        LOGD("freeSLES--outputMixObject")
+    }
 
-    if (engineObject)
+    if (engineObject) {
         (*engineObject)->Destroy(engineObject);
-    engineObject = NULL;
-    engineEngine = NULL;
-    LOGD("freeSLES--engineEngine")
+        engineObject = NULL;
+        engineEngine = NULL;
+        LOGD("freeSLES--engineEngine")
+    }
 }
 
 void LeiAudioPlayer::onDestory() {
-    free();
+    stop();
+    if (resampleBuff)
+        delete resampleBuff;
+    resampleBuff = NULL;
+    if (javaCallBack)
+        delete javaCallBack;
+    if (audioPlayStatus)
+        delete audioPlayStatus;
+}
+
+void LeiAudioPlayer::prepared(const char *dataSource) {
+    stop();
+    audioPlayStatus->init();
+    audioSource = new AudioSource(dataSource, audioPlayStatus);
+    audioPlayStatus->isCalledPrepare = true;
+    pthread_create(&audioSource->pthread_prepare, NULL, thread_prepared, this);
+}
+
+void LeiAudioPlayer::stop() {
+    if (audioSource != NULL) {
+        audioPlayStatus->isExist = true;
+        audioPlayStatus->isNeedStartAfterPrepared = false;
+        pthread_join(audioSource->pthread_prepare, NULL);
+        pthread_join(audioSource->pthread_decoder, NULL);
+        pthread_join(audioSource->pthread_SLES, NULL);
+        LOGD("all thread stop")
+        audioSource->release();
+        delete audioSource;
+        LOGD("delete audioSource")
+    }
+    stopSLES();
+}
+
+
+void LeiAudioPlayer::start() {
+    if (audioPlayStatus->isExist) {
+        LOGE("can not start after exist");
+        return;
+    }
+    if (!audioPlayStatus->isCalledPrepare) {
+        LOGE("please call prepare first");
+        return;
+    }
+    if (audioPlayStatus->isStarted) {
+        LOGE("already started");
+        return;
+    }
+
+    if (!audioPlayStatus->isPrepared) {
+        LOGE("wait Prepared and will start after Prepared");
+        audioPlayStatus->isNeedStartAfterPrepared = true;
+        return;
+    }
+    pthread_create(&audioSource->pthread_decoder, NULL, thread_decoder, this);
+    pthread_create(&audioSource->pthread_SLES, NULL, thread_SLES, this);
+}
+
+void LeiAudioPlayer::seek(int64_t secTarget) {
+    if (audioPlayStatus->isExist) {
+        LOGE("can not seek after exist");
+        return;
+    }
+
+    if (audioSource == NULL || !audioPlayStatus->isStarted) {
+        LOGE("can not seek before start");
+        return;
+    }
+    if (audioSource->duration == 0) {
+        LOGE("can not seek audioSource");
+        return;
+    }
+    if (secTarget > 0 && secTarget <= audioSource->duration) {
+        audioPlayStatus->isSeek = true;
+        audioSource->clock = 0;
+        audioSource->last_clock = 0;
+        audioSource->clearAVPackgetQueue();
+        pthread_mutex_lock(&mutex_seek);
+
+        int64_t rel = secTarget * AV_TIME_BASE;
+        avformat_seek_file(audioSource->pFormatCtx, -1, INT64_MIN, rel, INT64_MAX, 0);
+        pthread_mutex_unlock(&mutex_seek);
+        audioPlayStatus->isSeek = false;
+    }
+
 }
 
 

@@ -25,6 +25,8 @@ public class LeiAudioPlayer {
 
     public interface ICallBack {
         void onDurationChanged(int current, int all);
+
+        void onPlayFinished();
     }
 
     public LeiAudioPlayer() {
@@ -49,6 +51,10 @@ public class LeiAudioPlayer {
 
     public void resume() {
         nativeResume(mNativePtr);
+    }
+
+    public void seek(int second) {
+        nativeSeek(mNativePtr, second);
     }
 
     public void destory() {
@@ -86,6 +92,17 @@ public class LeiAudioPlayer {
         });
     }
 
+    public void onNativeCallFinished() {
+        LogUtil.d("--onNativeCallFinished--");
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (mCallBack != null)
+                    mCallBack.onPlayFinished();
+            }
+        });
+    }
+
     private native long nativeInit();
 
     private native void nativePrepare(long mNativePtr, String dataSource);
@@ -95,6 +112,8 @@ public class LeiAudioPlayer {
     private native void nativePause(long mNativePtr);
 
     private native void nativeResume(long mNativePtr);
+
+    private native void nativeSeek(long mNativePtr, int second);
 
     private native void nativeDestory(long mNativePtr);
 }

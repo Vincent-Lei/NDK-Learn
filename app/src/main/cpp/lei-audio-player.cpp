@@ -73,3 +73,15 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativeDestory(JNIEnv *env, jobject instanc
     }
     player = NULL;
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSeek(JNIEnv *env, jobject instance, jlong mNativePtr,
+                                                 jint second) {
+
+    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    if (player) {
+        player->seek(second);
+    }
+
+}
