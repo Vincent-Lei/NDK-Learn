@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.4.1)
 include_directories(src/main/cpp/include)
+include_directories(src/main/cpp/childProcess)
 
 file(GLOB native_cpp_files "${CMAKE_SOURCE_DIR}/src/main/cpp/*.cpp")
 file(GLOB native_c_files "${CMAKE_SOURCE_DIR}/src/main/cpp/*.c")

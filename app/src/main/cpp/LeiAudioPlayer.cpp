@@ -8,6 +8,7 @@
 LeiAudioPlayer::LeiAudioPlayer(JNIEnv *env, jobject *object) {
     javaCallBack = new AudioJavaCallBack(env, object);
     audioPlayStatus = new AudioPlayStatus();
+    openSLES = new LeiOpenSLES();
     pthread_mutex_init(&mutex_seek, NULL);
 }
 
@@ -148,9 +149,34 @@ void *thread_decoder(void *data) {
 
 }
 
+void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context) {
+    LeiAudioPlayer *player = (LeiAudioPlayer *) (context);
+    int bufferSize = player->resampleAudioPacket();
+    if (bufferSize > 0) {
+        player->audioSource->clock +=
+                bufferSize / ((double) (player->audioSource->codecpar->sample_rate * 2 * 2));
+        if (player->audioSource->clock - player->audioSource->last_clock >= 0.5) {
+            player->audioSource->last_clock = player->audioSource->clock;
+            player->javaCallBack->callJavaDuration(CHILD_THREAD_CALL,
+                                                   static_cast<int>(player->audioSource->clock),
+                                                   player->audioSource->duration);
+        }
+        (*player->openSLES->pcmBufferQueue)->Enqueue(player->openSLES->pcmBufferQueue,
+                                                     (char *) player->resampleBuff,
+                                                     bufferSize);
+    } else {
+        LOGE("play finished")
+        if (!player->audioPlayStatus->isExist)
+            player->javaCallBack->callJavaFinished(CHILD_THREAD_CALL);
+    }
+}
+
 void *thread_SLES(void *data) {
     LeiAudioPlayer *play = (LeiAudioPlayer *) (data);
-    play->initSLES();
+    if (play->openSLES) {
+        play->openSLES->prepare(play->audioSource->codecpar->sample_rate, pcmBufferCallBack, play);
+        play->openSLES->play();
+    }
     return 0;
 }
 
@@ -232,181 +258,23 @@ int LeiAudioPlayer::resampleAudioPacket() {
     return dataSize;
 }
 
-void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context) {
-    LeiAudioPlayer *player = (LeiAudioPlayer *) (context);
-    int bufferSize = player->resampleAudioPacket();
-    if (bufferSize > 0) {
-        player->audioSource->clock +=
-                bufferSize / ((double) (player->audioSource->codecpar->sample_rate * 2 * 2));
-        if (player->audioSource->clock - player->audioSource->last_clock >= 0.5) {
-            player->audioSource->last_clock = player->audioSource->clock;
-//            LOGD("%lf/%d", player->audioSource->clock, player->audioSource->duration);
-            player->javaCallBack->callJavaDuration(CHILD_THREAD_CALL,
-                                                   static_cast<int>(player->audioSource->clock),
-                                                   player->audioSource->duration);
-        }
-        (*player->pcmBufferQueue)->Enqueue(player->pcmBufferQueue, (char *) player->resampleBuff,
-                                           bufferSize);
-    } else {
-        LOGE("play finished")
-        if (!player->audioPlayStatus->isExist)
-            player->javaCallBack->callJavaFinished(CHILD_THREAD_CALL);
-    }
-}
-
-void LeiAudioPlayer::initSLES() {
-    SLresult result;
-    result = slCreateEngine(&engineObject, 0, 0, 0, 0, 0);
-    result = (*engineObject)->Realize(engineObject, SL_BOOLEAN_FALSE);
-    result = (*engineObject)->GetInterface(engineObject, SL_IID_ENGINE, &engineEngine);
-
-    //第二步，创建混音器
-    const SLInterfaceID mids[1] = {SL_IID_ENVIRONMENTALREVERB};
-    const SLboolean mreq[1] = {SL_BOOLEAN_FALSE};
-    result = (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject, 1, mids, mreq);
-    (void) result;
-    result = (*outputMixObject)->Realize(outputMixObject, SL_BOOLEAN_FALSE);
-    (void) result;
-    result = (*outputMixObject)->GetInterface(outputMixObject, SL_IID_ENVIRONMENTALREVERB,
-                                              &outputMixEnvironmentalReverb);
-    if (SL_RESULT_SUCCESS == result) {
-        result = (*outputMixEnvironmentalReverb)->SetEnvironmentalReverbProperties(
-                outputMixEnvironmentalReverb, &reverbSettings);
-        (void) result;
-    }
-    SLDataLocator_OutputMix outputMix = {SL_DATALOCATOR_OUTPUTMIX, outputMixObject};
-    SLDataSink audioSnk = {&outputMix, 0};
-
-
-    // 第三步，配置PCM格式信息
-    SLDataLocator_AndroidSimpleBufferQueue android_queue = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE,
-                                                            2};
-
-    SLDataFormat_PCM pcm = {
-            SL_DATAFORMAT_PCM,//播放pcm格式的数据
-            2,//2个声道（立体声）
-            static_cast<SLuint32>(getCurrentSampleRateForOpensles(
-                    audioSource->codecpar->sample_rate)),//44100hz的频率
-            SL_PCMSAMPLEFORMAT_FIXED_16,//位数 16位
-            SL_PCMSAMPLEFORMAT_FIXED_16,//和位数一致就行
-            SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,//立体声（前左前右）
-            SL_BYTEORDER_LITTLEENDIAN//结束标志
-    };
-    SLDataSource slDataSource = {&android_queue, &pcm};
-
-
-    const SLInterfaceID ids[1] = {SL_IID_BUFFERQUEUE};
-    const SLboolean req[1] = {SL_BOOLEAN_TRUE};
-
-    (*engineEngine)->CreateAudioPlayer(engineEngine, &pcmPlayerObject, &slDataSource, &audioSnk, 1,
-                                       ids, req);
-    //初始化播放器
-    (*pcmPlayerObject)->Realize(pcmPlayerObject, SL_BOOLEAN_FALSE);
-
-//    得到接口后调用  获取Player接口
-    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_PLAY, &pcmPlayerPlay);
-
-//    注册回调缓冲区 获取缓冲队列接口
-    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_BUFFERQUEUE, &pcmBufferQueue);
-    //缓冲接口回调
-    (*pcmBufferQueue)->RegisterCallback(pcmBufferQueue, pcmBufferCallBack, this);
-//    获取播放状态接口
-    (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PLAYING);
-    pcmBufferCallBack(pcmBufferQueue, this);
-    audioPlayStatus->isStarted = true;
-}
-
-int LeiAudioPlayer::getCurrentSampleRateForOpensles(int sample_rate) {
-    int rate = 0;
-    switch (sample_rate) {
-        case 8000:
-            rate = SL_SAMPLINGRATE_8;
-            break;
-        case 11025:
-            rate = SL_SAMPLINGRATE_11_025;
-            break;
-        case 12000:
-            rate = SL_SAMPLINGRATE_12;
-            break;
-        case 16000:
-            rate = SL_SAMPLINGRATE_16;
-            break;
-        case 22050:
-            rate = SL_SAMPLINGRATE_22_05;
-            break;
-        case 24000:
-            rate = SL_SAMPLINGRATE_24;
-            break;
-        case 32000:
-            rate = SL_SAMPLINGRATE_32;
-            break;
-        case 44100:
-            rate = SL_SAMPLINGRATE_44_1;
-            break;
-        case 48000:
-            rate = SL_SAMPLINGRATE_48;
-            break;
-        case 64000:
-            rate = SL_SAMPLINGRATE_64;
-            break;
-        case 88200:
-            rate = SL_SAMPLINGRATE_88_2;
-            break;
-        case 96000:
-            rate = SL_SAMPLINGRATE_96;
-            break;
-        case 192000:
-            rate = SL_SAMPLINGRATE_192;
-            break;
-        default:
-            rate = SL_SAMPLINGRATE_44_1;
-    }
-    return rate;
-}
 
 void LeiAudioPlayer::onPause() {
-    if (pcmPlayerPlay) {
-        (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PAUSED);
-    }
-    LOGD("native pause")
+    if (openSLES)
+        openSLES->pause();
 }
 
 void LeiAudioPlayer::onResume() {
-    if (pcmPlayerPlay)
-        (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PLAYING);
-    LOGD("native resume")
+    if (openSLES)
+        openSLES->resume();
 }
 
-void LeiAudioPlayer::stopSLES() {
-    LOGD("prepare freeSLES")
-    if (pcmPlayerPlay) {
-        (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_STOPPED);
-    }
-    if (pcmPlayerObject) {
-        (*pcmPlayerObject)->Destroy(pcmPlayerObject);
-        pcmPlayerObject = NULL;
-        pcmPlayerPlay = NULL;
-        pcmBufferQueue = NULL;
-        LOGD("freeSLES--pcmPlayerObject")
-    }
 
-    if (outputMixObject) {
-        (*outputMixObject)->Destroy(outputMixObject);
-        outputMixObject = NULL;
-        outputMixEnvironmentalReverb = NULL;
-        LOGD("freeSLES--outputMixObject")
-    }
-
-    if (engineObject) {
-        (*engineObject)->Destroy(engineObject);
-        engineObject = NULL;
-        engineEngine = NULL;
-        LOGD("freeSLES--engineEngine")
-    }
-}
-
-void LeiAudioPlayer::onDestory() {
-    stop();
+void LeiAudioPlayer::destroy() {
+    resetToInit();
+    if (openSLES)
+        openSLES->releaseSLES();
+    delete (openSLES);
     if (resampleBuff)
         delete resampleBuff;
     resampleBuff = NULL;
@@ -414,17 +282,20 @@ void LeiAudioPlayer::onDestory() {
         delete javaCallBack;
     if (audioPlayStatus)
         delete audioPlayStatus;
+    pthread_mutex_destroy(&mutex_seek);
 }
 
 void LeiAudioPlayer::prepared(const char *dataSource) {
-    stop();
+    resetToInit();
+    if (openSLES)
+        openSLES->releasePlayer();
     audioPlayStatus->init();
     audioSource = new AudioSource(dataSource, audioPlayStatus);
     audioPlayStatus->isCalledPrepare = true;
     pthread_create(&audioSource->pthread_prepare, NULL, thread_prepared, this);
 }
 
-void LeiAudioPlayer::stop() {
+void LeiAudioPlayer::resetToInit() {
     if (audioSource != NULL) {
         audioPlayStatus->isExist = true;
         audioPlayStatus->isNeedStartAfterPrepared = false;
@@ -436,7 +307,6 @@ void LeiAudioPlayer::stop() {
         delete audioSource;
         LOGD("delete audioSource")
     }
-    stopSLES();
 }
 
 
@@ -459,6 +329,7 @@ void LeiAudioPlayer::start() {
         audioPlayStatus->isNeedStartAfterPrepared = true;
         return;
     }
+    audioPlayStatus->isStarted = true;
     pthread_create(&audioSource->pthread_decoder, NULL, thread_decoder, this);
     pthread_create(&audioSource->pthread_SLES, NULL, thread_SLES, this);
 }

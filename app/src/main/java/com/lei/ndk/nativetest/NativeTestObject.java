@@ -19,4 +19,6 @@ public class NativeTestObject {
     public void callByNative(String nativeMsg) {
         Toast.makeText(NDKApplication.getApplication(), nativeMsg, Toast.LENGTH_SHORT).show();
     }
+
+    public native void watchUninstall(String packageDir, int sdkVersion);
 }

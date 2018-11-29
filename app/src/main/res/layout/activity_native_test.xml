@@ -23,4 +23,11 @@
         android:layout_height="40dp"
         android:onClick="onClick"
         android:text="CUSTOMER_AND_PRODUCER" />
+
+    <Button
+        android:id="@+id/btn_child_process"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:onClick="onClick"
+        android:text="Child_Process" />
 </LinearLayout>

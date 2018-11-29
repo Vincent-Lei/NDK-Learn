@@ -68,7 +68,7 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativeDestory(JNIEnv *env, jobject instanc
 
     LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
     if (player) {
-        player->onDestory();
+        player->destroy();
         delete player;
     }
     player = NULL;
@@ -85,3 +85,4 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSeek(JNIEnv *env, jobject instance, 
     }
 
 }
+

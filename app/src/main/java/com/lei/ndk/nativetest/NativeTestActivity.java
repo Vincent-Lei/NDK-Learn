@@ -1,11 +1,13 @@
 package com.lei.ndk.nativetest;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
 import com.lei.ndk.R;
+import com.lei.ndk.util.LogUtil;
 
 /**
  * Created by Vincent.Lei on 2018/11/21.
@@ -32,6 +34,11 @@ public class NativeTestActivity extends AppCompatActivity implements View.OnClic
                 break;
             case R.id.btn_customer_and_producer:
                 mNativeTestObject.nativeCustomerAndProducer();
+                break;
+            case R.id.btn_child_process:
+                LogUtil.d("sourceDir  =" + getApplicationContext().getApplicationInfo().sourceDir);
+                LogUtil.d("dataDir  =" + getApplicationContext().getApplicationInfo().dataDir);
+                mNativeTestObject.watchUninstall(getApplicationContext().getApplicationInfo().dataDir, Build.VERSION.SDK_INT);
                 break;
         }
     }

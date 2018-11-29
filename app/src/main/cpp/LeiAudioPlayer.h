@@ -10,30 +10,16 @@
 #include "AudioSource.h"
 #include <SLES/OpenSLES.h>
 #include "SLES/OpenSLES_Android.h"
+#include "LeiOpenSLES.h"
 
 class LeiAudioPlayer {
 public:
     AudioJavaCallBack *javaCallBack = NULL;
     AudioPlayStatus *audioPlayStatus = NULL;
     AudioSource *audioSource = NULL;
+    LeiOpenSLES *openSLES = NULL;
     uint8_t *resampleBuff = NULL;
     pthread_mutex_t mutex_seek;
-
-    // 引擎接口
-    SLObjectItf engineObject = NULL;
-    SLEngineItf engineEngine = NULL;
-
-    //混音器
-    SLObjectItf outputMixObject = NULL;
-    SLEnvironmentalReverbItf outputMixEnvironmentalReverb = NULL;
-    SLEnvironmentalReverbSettings reverbSettings = SL_I3DL2_ENVIRONMENT_PRESET_STONECORRIDOR;
-
-    //pcm
-    SLObjectItf pcmPlayerObject = NULL;
-    SLPlayItf pcmPlayerPlay = NULL;
-
-    //缓冲器队列接口
-    SLAndroidSimpleBufferQueueItf pcmBufferQueue = NULL;
 
 public:
     LeiAudioPlayer(JNIEnv *env, jobject *object);
@@ -51,23 +37,17 @@ public:
 
     void onResume();
 
-    void onDestory();
+    void destroy();
 
     void initFFMPEG();
 
-    void initSLES();
-
     int resampleAudioPacket();
-
-    int getCurrentSampleRateForOpensles(int sample_rate);
 
     void seek(int64_t secTarget);
 
 
 private:
-    void stop();
-
-    void stopSLES();
+    void resetToInit();
 };
 
 
