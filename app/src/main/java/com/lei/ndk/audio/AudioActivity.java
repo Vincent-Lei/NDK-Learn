@@ -1,16 +1,29 @@
 package com.lei.ndk.audio;
 
+import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.ListView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.lei.ndk.R;
 import com.lei.ndk.util.FileUtil;
 import com.lei.ndk.util.LogUtil;
 
-import java.io.File;
+import java.util.List;
 
 /**
  * Created by Vincent.Lei on 2018/11/21.
@@ -19,79 +32,173 @@ import java.io.File;
  */
 public class AudioActivity extends AppCompatActivity implements View.OnClickListener, LeiAudioPlayer.ICallBack {
     private static final String NET_SOURCE = "http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3";
+    private static final int PLAY_STATUS_STOPED = 0;
+    private static final int PLAY_STATUS_PLAYING = 1;
+    private static final int PLAY_STATUS_PAUSE = 2;
     private LeiAudioPlayer mPlayer;
-    TextView textView_time;
+    TextView textView_playDuration;
+    TextView textView_playTitle;
+    Button button_status;
+    ListView listView;
+    SeekBar seekBar_playDuration;
+    SeekBar seekBar_volume;
     int currentSec;
-    String currentSource;
+    int allSec;
+    List<MusicBean> mMusicFileList;
+    MusicAdapter mAdapter;
+    int mPlaySelection;
+    int mPlayStatus;
+    int colorMusicName;
+    int colorMusicPath;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_audio_test);
-        textView_time = findViewById(R.id.tv_time);
+        TextView textView = findViewById(R.id.tv_music_folder);
+        textView.setText("请将音乐文件放在" + FileUtil.getMusicFolder(this));
+        textView_playDuration = findViewById(R.id.tv_playDuration);
+        seekBar_playDuration = findViewById(R.id.seekBar_playDuration);
+        textView_playTitle = findViewById(R.id.tv_play_title);
+        button_status = findViewById(R.id.btn_status);
+        seekBar_volume = findViewById(R.id.seekBar_volume);
+        listView = findViewById(R.id.lv_music);
+
+
         mPlayer = new LeiAudioPlayer();
         mPlayer.setCallBack(this);
+        colorMusicName = getResources().getColor(R.color.colorAccent);
+        colorMusicPath = Color.rgb(100, 100, 100);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                mPlaySelection = position;
+                playMusic();
+            }
+        });
+        seekBar_playDuration.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int progress = seekBar.getProgress();
+                mPlayer.seek((int) (progress * allSec / 100.0f));
+
+            }
+        });
+
+        seekBar_volume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                mPlayer.setVolume(seekBar.getProgress());
+
+            }
+        });
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         if (mPlayer != null)
-            mPlayer.destory();
+            mPlayer.destroy();
+    }
+
+    private void init() {
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... voids) {
+                mMusicFileList = AudioFinder.findLocalMusic(AudioActivity.this);
+                mMusicFileList.add(new MusicBean("在线", NET_SOURCE));
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Void aVoid) {
+                super.onPostExecute(aVoid);
+                mAdapter = new MusicAdapter();
+                listView.setAdapter(mAdapter);
+            }
+        }.execute();
+
+
     }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.btn_normal_play:
-                playLocal();
+            case R.id.btn_init:
+                init();
                 break;
-            case R.id.btn_play_network:
-                playNetWork();
-                break;
-            case R.id.btn_pause:
-                mPlayer.pause();
-                break;
-            case R.id.btn_resume:
-                mPlayer.resume();
-                break;
-            case R.id.btn_seek:
-                mPlayer.seek(currentSec + 5);
+            case R.id.btn_status:
+                if (mPlayStatus == PLAY_STATUS_STOPED) {
+                    if (mMusicFileList == null || mMusicFileList.isEmpty())
+                        return;
+                    playMusic();
+                    button_status.setText("暂停");
+                    return;
+                }
+                if (mPlayStatus == PLAY_STATUS_PLAYING) {
+                    mPlayer.pause();
+                    mPlayStatus = PLAY_STATUS_PAUSE;
+                    button_status.setText("播放");
+                    return;
+                }
+                if (mPlayStatus == PLAY_STATUS_PAUSE) {
+                    mPlayer.resume();
+                    mPlayStatus = PLAY_STATUS_PLAYING;
+                    button_status.setText("暂停");
+                    return;
+                }
                 break;
         }
     }
 
-    private void playNetWork() {
-        mPlayer.setDataSource(NET_SOURCE);
+    private void playMusic() {
+        seekBar_playDuration.setProgress(0);
+        mPlayer.setDataSource(mMusicFileList.get(mPlaySelection).path);
+        textView_playTitle.setText(mMusicFileList.get(mPlaySelection).name);
         mPlayer.prepared();
+        mPlayer.setVolume(seekBar_volume.getProgress());
         mPlayer.start();
-        currentSource = NET_SOURCE;
-    }
-
-    private void playLocal() {
-        File file = FileUtil.getLocalAssetFile(this, "See_You_Again.mp3");
-        if (file != null && file.exists()) {
-            mPlayer.setDataSource(file.getAbsolutePath());
-            mPlayer.prepared();
-            mPlayer.start();
-            currentSource = file.getAbsolutePath();
-            return;
-        }
-        LogUtil.e("no found See_You_Again.mp3");
+        mPlayStatus = PLAY_STATUS_PLAYING;
     }
 
     @Override
     public void onDurationChanged(int current, int all) {
         currentSec = current;
-        textView_time.setText(formatTime(current) + "/" + formatTime(all));
+        allSec = all;
+        textView_playDuration.setText("进度：" + formatTime(current) + "/" + formatTime(all));
+        int percent = (int) ((current * 1.0f / all) * 100);
+        seekBar_playDuration.setProgress(percent);
     }
 
     @Override
     public void onPlayFinished() {
-        if (NET_SOURCE.equals(currentSource))
-            playLocal();
-        else
-            playNetWork();
+        if (mMusicFileList == null || mMusicFileList.isEmpty())
+            return;
+        mPlaySelection++;
+        if (mPlaySelection >= mMusicFileList.size())
+            mPlaySelection = 0;
+        playMusic();
+
     }
 
     private String formatTime(int second) {
@@ -108,5 +215,40 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
         else
             stringBuilder.append(secondLeft);
         return stringBuilder.toString();
+    }
+
+    private class MusicAdapter extends BaseAdapter {
+        @Override
+        public int getCount() {
+            return (mMusicFileList == null ? 0 : mMusicFileList.size());
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return null;
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            TextView textView = (TextView) convertView;
+            if (textView == null) {
+                textView = new TextView(AudioActivity.this);
+                textView.setTextColor(colorMusicPath);
+            }
+            textView.setGravity(Gravity.CENTER);
+            textView.setPadding(20, 20, 20, 20);
+            String musicName = mMusicFileList.get(position).name;
+            SpannableString spannableString = new SpannableString(musicName + "\n\n" + mMusicFileList.get(position).path);
+            if (!TextUtils.isEmpty(musicName))
+                spannableString.setSpan(new ForegroundColorSpan(colorMusicName), 0, musicName.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            textView.setText(spannableString);
+            convertView = textView;
+            return convertView;
+        }
     }
 }

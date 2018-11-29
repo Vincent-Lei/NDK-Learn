@@ -19,9 +19,10 @@ void LeiOpenSLES::init() {
     result = (*engineObject)->GetInterface(engineObject, SL_IID_ENGINE, &engineEngine);
 
     //第二步，创建混音器
-    const SLInterfaceID mids[1] = {SL_IID_ENVIRONMENTALREVERB};
-    const SLboolean mreq[1] = {SL_BOOLEAN_FALSE};
-    result = (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject, 1, mids, mreq);
+    const int MIX_ID_COUNT = 1;
+    const SLInterfaceID mids[MIX_ID_COUNT] = {SL_IID_ENVIRONMENTALREVERB};
+    const SLboolean mreq[MIX_ID_COUNT] = {SL_BOOLEAN_FALSE};
+    result = (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject, MIX_ID_COUNT, mids, mreq);
     (void) result;
     result = (*outputMixObject)->Realize(outputMixObject, SL_BOOLEAN_FALSE);
     (void) result;
@@ -36,7 +37,8 @@ void LeiOpenSLES::init() {
 
 
 void
-LeiOpenSLES::prepare(int rate, slAndroidSimpleBufferQueueCallback callback, void *callBackContext) {
+LeiOpenSLES::prepare(int rate, slAndroidSimpleBufferQueueCallback callback,
+                     void *callBackContext) {
     this->callBack = callback;
     this->callBackContext = callBackContext;
     SLDataLocator_OutputMix outputMix = {SL_DATALOCATOR_OUTPUTMIX, outputMixObject};
@@ -54,9 +56,9 @@ LeiOpenSLES::prepare(int rate, slAndroidSimpleBufferQueueCallback callback, void
             SL_BYTEORDER_LITTLEENDIAN//结束标志
     };
     SLDataSource slDataSource = {&android_queue, &pcm};
-    const int SL_ID_COUNT = 1;
-    const SLInterfaceID ids[SL_ID_COUNT] = {SL_IID_BUFFERQUEUE};
-    const SLboolean req[SL_ID_COUNT] = {SL_BOOLEAN_TRUE};
+    const int SL_ID_COUNT = 2;
+    const SLInterfaceID ids[SL_ID_COUNT] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME};
+    const SLboolean req[SL_ID_COUNT] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
     (*engineEngine)->CreateAudioPlayer(engineEngine, &pcmPlayerObject, &slDataSource, &audioSnk,
                                        SL_ID_COUNT, ids, req);
     //初始化播放器
@@ -64,7 +66,8 @@ LeiOpenSLES::prepare(int rate, slAndroidSimpleBufferQueueCallback callback, void
 
 //    得到接口后调用  获取Player接口
     (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_PLAY, &pcmPlayerPlay);
-
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_VOLUME, &pcmVolumePlay);
+    setVolume(volumePercent);
 //    注册回调缓冲区 获取缓冲队列接口
     (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_BUFFERQUEUE, &pcmBufferQueue);
     //缓冲接口回调
@@ -129,21 +132,22 @@ void LeiOpenSLES::play() {
 void LeiOpenSLES::stop() {
     if (pcmPlayerPlay) {
         (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_STOPPED);
+        LOGD("native OpenSLES stop")
     }
-    LOGD("native pause")
 }
 
 void LeiOpenSLES::pause() {
     if (pcmPlayerPlay) {
         (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PAUSED);
+        LOGD("native OpenSLES pause")
     }
-    LOGD("native pause")
 }
 
 void LeiOpenSLES::resume() {
-    if (pcmPlayerPlay)
+    if (pcmPlayerPlay) {
         (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PLAYING);
-    LOGD("native resume")
+        LOGD("native OpenSLES resume")
+    }
 }
 
 void LeiOpenSLES::releasePlayer() {
@@ -153,6 +157,7 @@ void LeiOpenSLES::releasePlayer() {
         pcmPlayerObject = NULL;
         pcmPlayerPlay = NULL;
         pcmBufferQueue = NULL;
+        pcmVolumePlay = NULL;
         LOGD("freeSLES--pcmPlayerObject")
     }
 
@@ -172,5 +177,30 @@ void LeiOpenSLES::releaseSLES() {
         engineObject = NULL;
         engineEngine = NULL;
         LOGD("freeSLES--engineEngine")
+    }
+}
+
+void LeiOpenSLES::setVolume(int percent) {
+    volumePercent = percent;
+    if (pcmVolumePlay != NULL) {
+        if (percent > 30) {
+            (*pcmVolumePlay)->SetVolumeLevel(pcmVolumePlay, (100 - percent) * -20);
+        } else if (percent > 25) {
+            (*pcmVolumePlay)->SetVolumeLevel(pcmVolumePlay, (100 - percent) * -22);
+        } else if (percent > 20) {
+            (*pcmVolumePlay)->SetVolumeLevel(pcmVolumePlay, (100 - percent) * -25);
+        } else if (percent > 15) {
+            (*pcmVolumePlay)->SetVolumeLevel(pcmVolumePlay, (100 - percent) * -28);
+        } else if (percent > 10) {
+            (*pcmVolumePlay)->SetVolumeLevel(pcmVolumePlay, (100 - percent) * -30);
+        } else if (percent > 5) {
+            (*pcmVolumePlay)->SetVolumeLevel(pcmVolumePlay, (100 - percent) * -34);
+        } else if (percent > 3) {
+            (*pcmVolumePlay)->SetVolumeLevel(pcmVolumePlay, (100 - percent) * -37);
+        } else if (percent > 0) {
+            (*pcmVolumePlay)->SetVolumeLevel(pcmVolumePlay, (100 - percent) * -40);
+        } else {
+            (*pcmVolumePlay)->SetVolumeLevel(pcmVolumePlay, (100 - percent) * -100);
+        }
     }
 }

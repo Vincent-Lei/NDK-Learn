@@ -63,7 +63,7 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativeResume(JNIEnv *env, jobject instance
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_lei_ndk_audio_LeiAudioPlayer_nativeDestory(JNIEnv *env, jobject instance,
+Java_com_lei_ndk_audio_LeiAudioPlayer_nativeDestroy(JNIEnv *env, jobject instance,
                                                     jlong mNativePtr) {
 
     LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
@@ -71,7 +71,6 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativeDestory(JNIEnv *env, jobject instanc
         player->destroy();
         delete player;
     }
-    player = NULL;
 }
 
 extern "C"
@@ -86,3 +85,14 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSeek(JNIEnv *env, jobject instance, 
 
 }
 
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSetVolume(JNIEnv *env, jobject instance,
+                                                      jlong mNativePtr, jint percent) {
+
+    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    if (player) {
+        player->setVolume(percent);
+    }
+
+}

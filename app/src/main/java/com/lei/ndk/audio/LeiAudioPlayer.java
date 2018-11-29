@@ -56,9 +56,11 @@ public class LeiAudioPlayer {
     public void seek(int second) {
         nativeSeek(mNativePtr, second);
     }
-
-    public void destory() {
-        nativeDestory(mNativePtr);
+    public void setVolume(int percent) {
+        nativeSetVolume(mNativePtr, percent);
+    }
+    public void destroy() {
+        nativeDestroy(mNativePtr);
     }
 
     public void start() {
@@ -115,5 +117,7 @@ public class LeiAudioPlayer {
 
     private native void nativeSeek(long mNativePtr, int second);
 
-    private native void nativeDestory(long mNativePtr);
+    private native void nativeDestroy(long mNativePtr);
+
+    private native void nativeSetVolume(long mNativePtr, int percent);
 }

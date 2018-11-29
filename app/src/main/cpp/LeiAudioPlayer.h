@@ -45,6 +45,7 @@ public:
 
     void seek(int64_t secTarget);
 
+    void setVolume(int percent);
 
 private:
     void resetToInit();

@@ -26,9 +26,11 @@ public:
     //pcm
     SLObjectItf pcmPlayerObject = NULL;
     SLPlayItf pcmPlayerPlay = NULL;
-
+    SLVolumeItf pcmVolumePlay = NULL;
     //缓冲器队列接口
     SLAndroidSimpleBufferQueueItf pcmBufferQueue = NULL;
+
+    int volumePercent = 50;
 public:
     LeiOpenSLES();
 
@@ -49,6 +51,8 @@ public:
     void releasePlayer();
 
     void releaseSLES();
+
+    void setVolume(int percent);
 
 private:
     void init();

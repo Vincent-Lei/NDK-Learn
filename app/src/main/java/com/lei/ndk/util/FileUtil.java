@@ -2,7 +2,6 @@ package com.lei.ndk.util;
 
 import android.content.Context;
 import android.os.Environment;
-import android.text.TextUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -15,8 +14,18 @@ import java.io.InputStream;
  * Note：
  */
 public class FileUtil {
-    public static File getLocalAssetFile(Context context, String assetName) {
-        File file = getFileByName(null, assetName);
+    public static final String MUSIC_FOLDER = "Music";
+
+    public static String getMusicFolder(Context context) {
+        String path = FileUtil.getRootDir(context) + File.separator + MUSIC_FOLDER;
+        File file = new File(path);
+        if (!file.exists())
+            file.mkdirs();
+        return path;
+    }
+
+    public static File writeLocalAssetFileToMusic(Context context, String assetName) {
+        File file = new File(getMusicFolder(context) + File.separator + assetName);
         if (file.exists())
             return file;
         try {
@@ -28,17 +37,7 @@ public class FileUtil {
         return file;
     }
 
-
-    private static File getFileByName(String subPath, String fileName) {
-        String path = getRootDir() + File.separator + (TextUtils.isEmpty(subPath) ? "cache" : subPath);
-        File file = new File(path);
-        if (!file.exists())
-            file.mkdirs();
-        file = new File(path + File.separator + fileName);
-        return file;
-    }
-
-    private static String getRootDir() {
+    public static String getRootDir(Context context) {
         File file = new File(Environment.getExternalStorageDirectory().getPath());
         if (!file.exists())
             file.mkdirs();
@@ -49,6 +48,7 @@ public class FileUtil {
         FileOutputStream fos = null;
         byte[] buff = new byte[1024];
         int len;
+        LogUtil.d("write file " + dest.getAbsolutePath());
         try {
             while ((len = inputStream.read(buff)) > 0) {
                 if (!dest.exists())

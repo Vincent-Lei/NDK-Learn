@@ -354,13 +354,17 @@ void LeiAudioPlayer::seek(int64_t secTarget) {
         audioSource->last_clock = 0;
         audioSource->clearAVPackgetQueue();
         pthread_mutex_lock(&mutex_seek);
-
         int64_t rel = secTarget * AV_TIME_BASE;
         avformat_seek_file(audioSource->pFormatCtx, -1, INT64_MIN, rel, INT64_MAX, 0);
         pthread_mutex_unlock(&mutex_seek);
         audioPlayStatus->isSeek = false;
     }
 
+}
+
+void LeiAudioPlayer::setVolume(int percent) {
+    if (openSLES != NULL)
+        openSLES->setVolume(percent);
 }
 
 
