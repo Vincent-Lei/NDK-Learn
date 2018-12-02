@@ -10,6 +10,7 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -40,9 +41,12 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     TextView textView_playTitle;
     Button button_audioMute;
     Button button_status;
+    Button button_pitch;
+    Button button_speed;
     ListView listView;
     SeekBar seekBar_playDuration;
     SeekBar seekBar_volume;
+    SeekBar seekBar_amplitude;
     int currentSec;
     int allSec;
     List<MusicBean> mMusicFileList;
@@ -52,6 +56,7 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     int colorMusicName;
     int colorMusicPath;
     int audioMute = LeiAudioPlayer.Mute.DOUBLE;
+    float pitch = 1.0f, speed = 1.0f;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -63,7 +68,16 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
         seekBar_playDuration = findViewById(R.id.seekBar_playDuration);
         textView_playTitle = findViewById(R.id.tv_play_title);
         button_status = findViewById(R.id.btn_status);
+        button_pitch = findViewById(R.id.btn_pitch);
+        button_speed = findViewById(R.id.btn_speed);
         seekBar_volume = findViewById(R.id.seekBar_volume);
+        seekBar_amplitude = findViewById(R.id.seekBar_amplitude);
+        seekBar_amplitude.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return true;
+            }
+        });
         listView = findViewById(R.id.lv_music);
         button_audioMute = findViewById(R.id.btn_mute);
 
@@ -185,17 +199,37 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
                 }
                 mPlayer.setMute(audioMute);
                 break;
+            case R.id.btn_pitch:
+                pitch += 0.5f;
+                if (pitch > 3.0f)
+                    pitch = 1.0f;
+                button_pitch.setText("音调" + pitch + "倍");
+                mPlayer.setPitch(pitch);
+                break;
+            case R.id.btn_speed:
+                speed += 0.5f;
+                if (speed > 3.0f)
+                    speed = 1.0f;
+                button_speed.setText("音速" + speed + "倍");
+                mPlayer.setSpeed(speed);
+                break;
         }
     }
 
     private void playMusic() {
-        seekBar_playDuration.setProgress(0);
-        mPlayer.setDataSource(mMusicFileList.get(mPlaySelection).path);
-        textView_playTitle.setText(mMusicFileList.get(mPlaySelection).name);
-        mPlayer.prepared();
-        mPlayer.setVolume(seekBar_volume.getProgress());
-        mPlayer.start();
-        mPlayStatus = PLAY_STATUS_PLAYING;
+        textView_playTitle.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                seekBar_playDuration.setProgress(0);
+                mPlayer.setDataSource(mMusicFileList.get(mPlaySelection).path);
+                textView_playTitle.setText(mMusicFileList.get(mPlaySelection).name);
+                mPlayer.prepared();
+                mPlayer.setVolume(seekBar_volume.getProgress());
+                mPlayer.start();
+                mPlayStatus = PLAY_STATUS_PLAYING;
+            }
+        },2000);
+
     }
 
     @Override
@@ -205,6 +239,11 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
         textView_playDuration.setText("进度：" + formatTime(current) + "/" + formatTime(all));
         int percent = (int) ((current * 1.0f / all) * 100);
         seekBar_playDuration.setProgress(percent);
+    }
+
+    @Override
+    public void onAmplitudeChanged(int amplitude) {
+        seekBar_amplitude.setProgress(amplitude);
     }
 
     @Override

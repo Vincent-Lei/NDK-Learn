@@ -10,6 +10,8 @@ LeiAudioPlayer::LeiAudioPlayer(JNIEnv *env, jobject *object) {
     audioPlayStatus = new AudioPlayStatus();
     openSLES = new LeiOpenSLES();
     pthread_mutex_init(&mutex_seek, NULL);
+    sampleBuffer = static_cast<SAMPLETYPE *>(malloc(44100 * 2 * 2));
+    soundTouch = new SoundTouch();
 }
 
 LeiAudioPlayer::~LeiAudioPlayer() {
@@ -151,19 +153,27 @@ void *thread_decoder(void *data) {
 
 void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context) {
     LeiAudioPlayer *player = (LeiAudioPlayer *) (context);
-    int bufferSize = player->resampleAudioPacket();
-    if (bufferSize > 0) {
+    int soundTouchBufferSize = player->getSoundTouchData();
+    if (soundTouchBufferSize > 0) {
         player->audioSource->clock +=
-                bufferSize / ((double) (player->audioSource->codecpar->sample_rate * 2 * 2));
+                soundTouchBufferSize /
+                ((double) (player->audioSource->codecpar->sample_rate * 2 * 2));
         if (player->audioSource->clock - player->audioSource->last_clock >= 0.5) {
             player->audioSource->last_clock = player->audioSource->clock;
             player->javaCallBack->callJavaDuration(CHILD_THREAD_CALL,
                                                    static_cast<int>(player->audioSource->clock),
                                                    player->audioSource->duration);
         }
+        player->amplitudeCount++;
+        if (player->amplitudeCount >= 5) {
+            player->amplitudeCount = 0;
+            int db = player->getPCMAmplitude((char *) (player->sampleBuffer),
+                                             soundTouchBufferSize * 4);
+            player->javaCallBack->callJavaAmplitude(CHILD_THREAD_CALL, db);
+        }
         (*player->openSLES->pcmBufferQueue)->Enqueue(player->openSLES->pcmBufferQueue,
-                                                     (char *) player->resampleBuff,
-                                                     bufferSize);
+                                                     (char *) player->sampleBuffer,
+                                                     soundTouchBufferSize * 2 * 2);
     } else {
         LOGE("play finished")
         if (!player->audioPlayStatus->isExist)
@@ -171,17 +181,43 @@ void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context) {
     }
 }
 
-void *thread_SLES(void *data) {
-    LeiAudioPlayer *play = (LeiAudioPlayer *) (data);
-    if (play->openSLES) {
-        play->openSLES->prepare(play->audioSource->codecpar->sample_rate, pcmBufferCallBack, play);
-        play->openSLES->play();
+int LeiAudioPlayer::getSoundTouchData() {
+    int data_size = 0;
+    while (!audioPlayStatus->isExist && !audioPlayStatus->isCostFinished) {
+        out_soundTouch_buffer = NULL;
+        if (isSoundTouchFinished) {
+            isSoundTouchFinished = false;
+            data_size = resampleAudioPacket((&out_soundTouch_buffer));
+            if (data_size > 0) {
+                for (int i = 0; i < data_size / 2 + 1; i++) {
+                    sampleBuffer[i] = (out_soundTouch_buffer[i * 2] |
+                                       ((out_soundTouch_buffer[i * 2 + 1]) << 8));
+                }
+                soundTouch->putSamples(sampleBuffer, data_nb_samples);
+                data_st_num = soundTouch->receiveSamples(sampleBuffer, data_size / 4);
+            } else {
+                soundTouch->flush();
+            }
+        }
+        if (data_st_num == 0) {
+            isSoundTouchFinished = true;
+            continue;
+        } else {
+            if (out_soundTouch_buffer == NULL) {
+                data_st_num = soundTouch->receiveSamples(sampleBuffer, data_size / 4);
+                if (data_st_num == 0) {
+                    isSoundTouchFinished = true;
+                    continue;
+                }
+            }
+            return data_st_num;
+        }
     }
     return 0;
 }
 
 
-int LeiAudioPlayer::resampleAudioPacket() {
+int LeiAudioPlayer::resampleAudioPacket(uint8_t **out_buffer) {
     int dataSize = 0;
     AVPacket *avPacket = av_packet_alloc();
     while (!audioPlayStatus->isExist && !audioPlayStatus->isCostFinished) {
@@ -228,7 +264,7 @@ int LeiAudioPlayer::resampleAudioPacket() {
             );
             if (swr_ctx) {
                 if (swr_init(swr_ctx) >= 0) {
-                    int nb = swr_convert(
+                    data_nb_samples = swr_convert(
                             swr_ctx,
                             &resampleBuff,
                             avFrame->nb_samples,
@@ -236,8 +272,9 @@ int LeiAudioPlayer::resampleAudioPacket() {
                             avFrame->nb_samples);
 
                     int out_channels = av_get_channel_layout_nb_channels(AV_CH_LAYOUT_STEREO);
-                    dataSize = nb * out_channels * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
-
+                    dataSize = data_nb_samples * out_channels *
+                               av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
+                    *out_buffer = resampleBuff;
                     audioSource->current_time = avFrame->pts * av_q2d(audioSource->time_base);
                     if (audioSource->current_time < audioSource->clock)
                         audioSource->current_time = audioSource->clock;
@@ -256,6 +293,19 @@ int LeiAudioPlayer::resampleAudioPacket() {
     av_packet_free(&avPacket);
     av_free(avPacket);
     return dataSize;
+}
+
+void *thread_SLES(void *data) {
+    LeiAudioPlayer *play = (LeiAudioPlayer *) (data);
+    play->soundTouch->setSampleRate(play->audioSource->codecpar->sample_rate);
+    play->soundTouch->setChannels(2);
+    play->soundTouch->setPitch(play->pitch);
+    play->soundTouch->setTempo(play->speed);
+    if (play->openSLES) {
+        play->openSLES->prepare(play->audioSource->codecpar->sample_rate, pcmBufferCallBack, play);
+        play->openSLES->play();
+    }
+    return 0;
 }
 
 
@@ -282,6 +332,10 @@ void LeiAudioPlayer::destroy() {
         delete javaCallBack;
     if (audioPlayStatus)
         delete audioPlayStatus;
+    if (soundTouch)
+        delete soundTouch;
+    if (sampleBuffer)
+        delete (sampleBuffer);
     pthread_mutex_destroy(&mutex_seek);
 }
 
@@ -371,5 +425,35 @@ void LeiAudioPlayer::setMute(int mute) {
     if (openSLES != NULL)
         openSLES->setMute(mute);
 }
+
+void LeiAudioPlayer::setPitch(float pitch) {
+    this->pitch = pitch;
+    if (soundTouch != NULL) {
+        soundTouch->setPitch(pitch);
+    }
+}
+
+void LeiAudioPlayer::setSpeed(float speed) {
+    this->speed = speed;
+    if (soundTouch != NULL) {
+        soundTouch->setTempo(speed);
+    }
+}
+
+int LeiAudioPlayer::getPCMAmplitude(char *pcmcata, size_t pcmsize) {
+    int db = 0;
+    short int pervalue = 0;
+    double sum = 0;
+    for (int i = 0; i < pcmsize; i += 2) {
+        memcpy(&pervalue, pcmcata + i, 2);
+        sum += abs(pervalue);
+    }
+    sum = sum / (pcmsize / 2);
+    if (sum > 0) {
+        db = (int) 20.0 * log10(sum);
+    }
+    return db;
+}
+
 
 

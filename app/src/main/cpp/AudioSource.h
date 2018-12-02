@@ -12,7 +12,7 @@
 #include "native-log.h"
 
 #define AUDIO_STREAM_NO_FOUND -1
-#define MAX_QUEUE_SIZE 40
+#define MAX_QUEUE_SIZE 80
 extern "C" {
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"

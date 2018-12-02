@@ -70,8 +70,9 @@ LeiOpenSLES::prepare(int rate, slAndroidSimpleBufferQueueCallback callback,
     (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_VOLUME, &pcmVolumePlay);
     //获取声道接口
     (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_MUTESOLO, &pcmMutePlay);
-
     setVolume(volumePercent);
+    setMute(audioMute);
+
 //    注册回调缓冲区 获取缓冲队列接口
     (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_BUFFERQUEUE, &pcmBufferQueue);
     //缓冲接口回调

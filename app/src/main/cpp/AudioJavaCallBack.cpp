@@ -17,6 +17,8 @@ AudioJavaCallBack::AudioJavaCallBack(JNIEnv *env, jobject *object) {
                                                  "(Z)V");
     this->jmid_callDuration = env->GetMethodID(java_class, "onNativeCallDuration",
                                                "(II)V");
+    this->jmid_callAmplitude = env->GetMethodID(java_class, "onNativeCallAmplitude",
+                                               "(I)V");
 }
 
 AudioJavaCallBack::~AudioJavaCallBack() {
@@ -83,6 +85,20 @@ void AudioJavaCallBack::callJavaFinished(int type) {
         JNIEnv *jniEnv;
         if (m_thread_jvm->AttachCurrentThread(&jniEnv, NULL) == JNI_OK) {
             jniEnv->CallVoidMethod(java_instance, jmid_callFinished);
+            m_thread_jvm->DetachCurrentThread();
+        }
+    }
+}
+
+
+void AudioJavaCallBack::callJavaAmplitude(int type, int amplitude) {
+    if (type == MAIN_THREAD_CALL)
+        env->CallVoidMethod(java_instance, jmid_callAmplitude,amplitude);
+    else if (type == CHILD_THREAD_CALL) {
+        extern JavaVM *m_thread_jvm;
+        JNIEnv *jniEnv;
+        if (m_thread_jvm->AttachCurrentThread(&jniEnv, NULL) == JNI_OK) {
+            jniEnv->CallVoidMethod(java_instance, jmid_callAmplitude,amplitude);
             m_thread_jvm->DetachCurrentThread();
         }
     }

@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.4.1)
 include_directories(src/main/cpp/include)
-include_directories(src/main/cpp/childProcess)
+include_directories(src/main/cpp/soundtouch/include)
+include_directories(src/main/cpp/soundtouch/SoundTouch)
 
 file(GLOB native_cpp_files "${CMAKE_SOURCE_DIR}/src/main/cpp/*.cpp")
 file(GLOB native_c_files "${CMAKE_SOURCE_DIR}/src/main/cpp/*.c")
+file(GLOB native_soundtouch_files "${CMAKE_SOURCE_DIR}/src/main/cpp/soundtouch/SoundTouch/*.cpp")
 
-add_library(native-lib SHARED ${native_cpp_files} ${native_c_files})
+add_library(native-lib SHARED ${native_cpp_files} ${native_c_files} ${native_soundtouch_files})
 
 #add_library( # Sets the name of the library.
 #        native-lib

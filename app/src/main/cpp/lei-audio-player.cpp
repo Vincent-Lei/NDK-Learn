@@ -24,8 +24,10 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativePrepare(JNIEnv *env, jobject instanc
     const char *dataSource = env->GetStringUTFChars(dataSource_, 0);
     LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
     if (player != NULL) {
-        char *copy_data = (char *) (malloc(sizeof(char) * strlen(dataSource)));
+        const int len = strlen(dataSource);
+        char *copy_data = (char *) (malloc(sizeof(char) * (len + 1)));
         strcpy(copy_data, dataSource);
+        copy_data[len] = '\0';
         LOGD("%s", copy_data);
         player->prepared(copy_data);
     }
@@ -106,5 +108,27 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSetMute(JNIEnv *env, jobject instanc
     if (player) {
         player->setMute(mute);
     }
+
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSetPitch(JNIEnv *env, jobject instance,
+                                                     jlong mNativePtr, jfloat pitch) {
+
+    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    if (player)
+        player->setPitch(pitch);
+
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSetSpeed(JNIEnv *env, jobject instance,
+                                                     jlong mNativePtr, jfloat speed) {
+
+    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    if (player)
+        player->setSpeed(speed);
 
 }

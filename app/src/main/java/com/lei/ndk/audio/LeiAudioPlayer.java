@@ -33,6 +33,8 @@ public class LeiAudioPlayer {
     public interface ICallBack {
         void onDurationChanged(int current, int all);
 
+        void onAmplitudeChanged(int amplitude);
+
         void onPlayFinished();
     }
 
@@ -66,6 +68,14 @@ public class LeiAudioPlayer {
 
     public void setVolume(int percent) {
         nativeSetVolume(mNativePtr, percent);
+    }
+
+    public void setPitch(float pitch) {
+        nativeSetPitch(mNativePtr, pitch);
+    }
+
+    public void setSpeed(float speed) {
+        nativeSetSpeed(mNativePtr, speed);
     }
 
     public void setMute(int mute) {
@@ -119,6 +129,18 @@ public class LeiAudioPlayer {
         });
     }
 
+    public void onNativeCallAmplitude(final int amplitude) {
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (mCallBack != null) {
+                    mCallBack.onAmplitudeChanged(amplitude);
+                }
+            }
+        });
+    }
+
+
     private native long nativeInit();
 
     private native void nativePrepare(long mNativePtr, String dataSource);
@@ -136,4 +158,8 @@ public class LeiAudioPlayer {
     private native void nativeSetVolume(long mNativePtr, int percent);
 
     private native void nativeSetMute(long mNativePtr, int mute);
+
+    private native void nativeSetPitch(long mNativePtr, float pitch);
+
+    private native void nativeSetSpeed(long mNativePtr, float speed);
 }

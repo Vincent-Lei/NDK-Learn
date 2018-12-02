@@ -11,6 +11,9 @@
 #include <SLES/OpenSLES.h>
 #include "SLES/OpenSLES_Android.h"
 #include "LeiOpenSLES.h"
+#include "SoundTouch.h"
+
+using namespace soundtouch;
 
 class LeiAudioPlayer {
 public:
@@ -20,6 +23,17 @@ public:
     LeiOpenSLES *openSLES = NULL;
     uint8_t *resampleBuff = NULL;
     pthread_mutex_t mutex_seek;
+
+    //SoundTouch
+    SoundTouch *soundTouch = NULL;
+    SAMPLETYPE *sampleBuffer = NULL;
+    bool isSoundTouchFinished = false;
+    uint8_t *out_soundTouch_buffer = NULL;
+    int data_nb_samples = 0;
+    int data_st_num = 0;
+    float pitch = 1.0f;
+    float speed = 1.0f;
+    int amplitudeCount = 0;
 
 public:
     LeiAudioPlayer(JNIEnv *env, jobject *object);
@@ -41,13 +55,21 @@ public:
 
     void initFFMPEG();
 
-    int resampleAudioPacket();
+    int getSoundTouchData();
+
+    int resampleAudioPacket(uint8_t **out_soundTouch_buffer);
 
     void seek(int64_t secTarget);
 
     void setVolume(int percent);
 
     void setMute(int mute);
+
+    void setPitch(float pitch);
+
+    void setSpeed(float pitch);
+
+    int getPCMAmplitude(char *pcmcata, size_t pcmsize);
 
 private:
     void resetToInit();
