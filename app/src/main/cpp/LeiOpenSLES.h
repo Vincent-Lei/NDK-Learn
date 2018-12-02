@@ -4,6 +4,9 @@
 
 #ifndef NDK_LEARN_LEIOPENSLES_H
 #define NDK_LEARN_LEIOPENSLES_H
+#define AUDIO_MUTE_LEFT 1
+#define AUDIO_MUTE_RIFGT 0
+#define AUDIO_MUTE_DOUBLE 2
 
 #include <SLES/OpenSLES.h>
 #include "SLES/OpenSLES_Android.h"
@@ -27,10 +30,14 @@ public:
     SLObjectItf pcmPlayerObject = NULL;
     SLPlayItf pcmPlayerPlay = NULL;
     SLVolumeItf pcmVolumePlay = NULL;
+    //声道
+    SLMuteSoloItf pcmMutePlay = NULL;
+
     //缓冲器队列接口
     SLAndroidSimpleBufferQueueItf pcmBufferQueue = NULL;
 
     int volumePercent = 50;
+    int audioMute = AUDIO_MUTE_DOUBLE ;
 public:
     LeiOpenSLES();
 
@@ -53,6 +60,8 @@ public:
     void releaseSLES();
 
     void setVolume(int percent);
+
+    void setMute(int mute);
 
 private:
     void init();

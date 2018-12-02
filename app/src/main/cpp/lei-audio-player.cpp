@@ -96,3 +96,15 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSetVolume(JNIEnv *env, jobject insta
     }
 
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSetMute(JNIEnv *env, jobject instance, jlong mNativePtr,
+                                                    jint mute) {
+
+    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    if (player) {
+        player->setMute(mute);
+    }
+
+}

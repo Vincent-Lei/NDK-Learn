@@ -22,7 +22,8 @@ void LeiOpenSLES::init() {
     const int MIX_ID_COUNT = 1;
     const SLInterfaceID mids[MIX_ID_COUNT] = {SL_IID_ENVIRONMENTALREVERB};
     const SLboolean mreq[MIX_ID_COUNT] = {SL_BOOLEAN_FALSE};
-    result = (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject, MIX_ID_COUNT, mids, mreq);
+    result = (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject, MIX_ID_COUNT, mids,
+                                              mreq);
     (void) result;
     result = (*outputMixObject)->Realize(outputMixObject, SL_BOOLEAN_FALSE);
     (void) result;
@@ -56,9 +57,9 @@ LeiOpenSLES::prepare(int rate, slAndroidSimpleBufferQueueCallback callback,
             SL_BYTEORDER_LITTLEENDIAN//结束标志
     };
     SLDataSource slDataSource = {&android_queue, &pcm};
-    const int SL_ID_COUNT = 2;
-    const SLInterfaceID ids[SL_ID_COUNT] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME};
-    const SLboolean req[SL_ID_COUNT] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
+    const int SL_ID_COUNT = 3;
+    const SLInterfaceID ids[SL_ID_COUNT] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME, SL_IID_MUTESOLO};
+    const SLboolean req[SL_ID_COUNT] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
     (*engineEngine)->CreateAudioPlayer(engineEngine, &pcmPlayerObject, &slDataSource, &audioSnk,
                                        SL_ID_COUNT, ids, req);
     //初始化播放器
@@ -67,6 +68,9 @@ LeiOpenSLES::prepare(int rate, slAndroidSimpleBufferQueueCallback callback,
 //    得到接口后调用  获取Player接口
     (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_PLAY, &pcmPlayerPlay);
     (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_VOLUME, &pcmVolumePlay);
+    //获取声道接口
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_MUTESOLO, &pcmMutePlay);
+
     setVolume(volumePercent);
 //    注册回调缓冲区 获取缓冲队列接口
     (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_BUFFERQUEUE, &pcmBufferQueue);
@@ -158,6 +162,7 @@ void LeiOpenSLES::releasePlayer() {
         pcmPlayerPlay = NULL;
         pcmBufferQueue = NULL;
         pcmVolumePlay = NULL;
+        pcmMutePlay = NULL;
         LOGD("freeSLES--pcmPlayerObject")
     }
 
@@ -202,5 +207,26 @@ void LeiOpenSLES::setVolume(int percent) {
         } else {
             (*pcmVolumePlay)->SetVolumeLevel(pcmVolumePlay, (100 - percent) * -100);
         }
+    }
+}
+
+void LeiOpenSLES::setMute(int mute) {
+    this->audioMute = mute;
+    if (pcmMutePlay != NULL) {
+        if (mute == AUDIO_MUTE_RIFGT)//right
+        {
+            (*pcmMutePlay)->SetChannelMute(pcmMutePlay, 1, false);
+            (*pcmMutePlay)->SetChannelMute(pcmMutePlay, 0, true);
+        } else if (mute == AUDIO_MUTE_LEFT)//left
+        {
+            (*pcmMutePlay)->SetChannelMute(pcmMutePlay, 1, true);
+            (*pcmMutePlay)->SetChannelMute(pcmMutePlay, 0, false);
+        } else if (mute == AUDIO_MUTE_DOUBLE)//center
+        {
+            (*pcmMutePlay)->SetChannelMute(pcmMutePlay, 1, false);
+            (*pcmMutePlay)->SetChannelMute(pcmMutePlay, 0, false);
+        }
+
+
     }
 }

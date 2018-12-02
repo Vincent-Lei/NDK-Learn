@@ -367,4 +367,9 @@ void LeiAudioPlayer::setVolume(int percent) {
         openSLES->setVolume(percent);
 }
 
+void LeiAudioPlayer::setMute(int mute) {
+    if (openSLES != NULL)
+        openSLES->setMute(mute);
+}
+
 

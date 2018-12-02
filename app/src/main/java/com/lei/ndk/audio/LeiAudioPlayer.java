@@ -13,6 +13,13 @@ import com.lei.ndk.util.LogUtil;
  * Note：
  */
 public class LeiAudioPlayer {
+
+    public interface Mute {
+        int RIGHT = 0;
+        int LEFT = 1;
+        int DOUBLE = 2;
+    }
+
     private static final Handler mHandler = new Handler(Looper.getMainLooper());
     private long mNativePtr;
     private String mDataSource;
@@ -56,9 +63,16 @@ public class LeiAudioPlayer {
     public void seek(int second) {
         nativeSeek(mNativePtr, second);
     }
+
     public void setVolume(int percent) {
         nativeSetVolume(mNativePtr, percent);
     }
+
+    public void setMute(int mute) {
+        if (mute == Mute.DOUBLE || mute == Mute.RIGHT || mute == Mute.LEFT)
+            nativeSetMute(mNativePtr, mute);
+    }
+
     public void destroy() {
         nativeDestroy(mNativePtr);
     }
@@ -120,4 +134,6 @@ public class LeiAudioPlayer {
     private native void nativeDestroy(long mNativePtr);
 
     private native void nativeSetVolume(long mNativePtr, int percent);
+
+    private native void nativeSetMute(long mNativePtr, int mute);
 }

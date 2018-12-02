@@ -38,6 +38,7 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     private LeiAudioPlayer mPlayer;
     TextView textView_playDuration;
     TextView textView_playTitle;
+    Button button_audioMute;
     Button button_status;
     ListView listView;
     SeekBar seekBar_playDuration;
@@ -50,6 +51,7 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     int mPlayStatus;
     int colorMusicName;
     int colorMusicPath;
+    int audioMute = LeiAudioPlayer.Mute.DOUBLE;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -63,6 +65,7 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
         button_status = findViewById(R.id.btn_status);
         seekBar_volume = findViewById(R.id.seekBar_volume);
         listView = findViewById(R.id.lv_music);
+        button_audioMute = findViewById(R.id.btn_mute);
 
 
         mPlayer = new LeiAudioPlayer();
@@ -167,6 +170,20 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
                     button_status.setText("暂停");
                     return;
                 }
+                break;
+
+            case R.id.btn_mute:
+                if (audioMute == LeiAudioPlayer.Mute.DOUBLE) {
+                    audioMute = LeiAudioPlayer.Mute.LEFT;
+                    button_audioMute.setText("左声道");
+                } else if (audioMute == LeiAudioPlayer.Mute.LEFT) {
+                    audioMute = LeiAudioPlayer.Mute.RIGHT;
+                    button_audioMute.setText("右声道");
+                } else if (audioMute == LeiAudioPlayer.Mute.RIGHT) {
+                    audioMute = LeiAudioPlayer.Mute.DOUBLE;
+                    button_audioMute.setText("立体声");
+                }
+                mPlayer.setMute(audioMute);
                 break;
         }
     }
