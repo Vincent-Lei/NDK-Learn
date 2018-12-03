@@ -22,7 +22,6 @@ import android.widget.TextView;
 
 import com.lei.ndk.R;
 import com.lei.ndk.util.FileUtil;
-import com.lei.ndk.util.LogUtil;
 
 import java.util.List;
 
@@ -57,7 +56,7 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     int colorMusicPath;
     int audioMute = LeiAudioPlayer.Mute.DOUBLE;
     float pitch = 1.0f, speed = 1.0f;
-
+   
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -80,7 +79,6 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
         });
         listView = findViewById(R.id.lv_music);
         button_audioMute = findViewById(R.id.btn_mute);
-
 
         mPlayer = new LeiAudioPlayer();
         mPlayer.setCallBack(this);
@@ -228,7 +226,7 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
                 mPlayer.start();
                 mPlayStatus = PLAY_STATUS_PLAYING;
             }
-        },2000);
+        }, 2000);
 
     }
 
