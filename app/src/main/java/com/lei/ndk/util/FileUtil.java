@@ -2,6 +2,7 @@ package com.lei.ndk.util;
 
 import android.content.Context;
 import android.os.Environment;
+import android.text.TextUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -17,7 +18,7 @@ public class FileUtil {
     public static final String MUSIC_FOLDER = "Music";
 
     public static String getMusicFolder(Context context) {
-        String path = FileUtil.getRootDir(context) + File.separator + MUSIC_FOLDER;
+        String path = FileUtil.getRootDir() + File.separator + MUSIC_FOLDER;
         File file = new File(path);
         if (!file.exists())
             file.mkdirs();
@@ -37,11 +38,28 @@ public class FileUtil {
         return file;
     }
 
-    public static String getRootDir(Context context) {
+    public static String getRootDir() {
         File file = new File(Environment.getExternalStorageDirectory().getPath());
         if (!file.exists())
             file.mkdirs();
         return file.getAbsolutePath();
+    }
+
+    public static File getRecordFile(Context context, String name, String suffixName, boolean isAutoCreate) {
+        File file = new File(getRootDir() + File.separator + context.getPackageName());
+        if (!file.exists())
+            file.mkdirs();
+        if (TextUtils.isEmpty(name))
+            name = String.valueOf(System.currentTimeMillis());
+        file = new File(file.getAbsolutePath() + File.separator + name + suffixName);
+        if (!file.exists() && isAutoCreate) {
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return file;
     }
 
     private static void writeFileToLocal(InputStream inputStream, File dest) {

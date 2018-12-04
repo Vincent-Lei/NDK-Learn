@@ -1,10 +1,13 @@
 package com.lei.ndk.audio;
 
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
 
 import com.lei.ndk.util.LogUtil;
+
+import java.io.File;
 
 
 /**
@@ -13,7 +16,6 @@ import com.lei.ndk.util.LogUtil;
  * Note：
  */
 public class LeiAudioPlayer {
-
     public interface Mute {
         int RIGHT = 0;
         int LEFT = 1;
@@ -23,6 +25,19 @@ public class LeiAudioPlayer {
     private static final Handler mHandler = new Handler(Looper.getMainLooper());
     private long mNativePtr;
     private String mDataSource;
+    private HandlerThread mAACHandlerThread;
+    private PcmToAac mPcmToAac;
+    private Handler mAACHandler;
+    private boolean isOnRecording;
+    private boolean isPauseRecording;
+
+    public boolean isOnRecording() {
+        return isOnRecording;
+    }
+
+    public boolean isPauseRecording() {
+        return isPauseRecording;
+    }
 
     public void setCallBack(ICallBack mCallBack) {
         this.mCallBack = mCallBack;
@@ -95,6 +110,86 @@ public class LeiAudioPlayer {
         nativeStart(mNativePtr);
     }
 
+    private static class AACTask implements Runnable {
+        int sampleRate;
+        int size;
+        byte[] buff;
+        PcmToAac pcmToAac;
+
+        AACTask(int size, byte[] buff, PcmToAac pcmToAac) {
+            this(0, size, buff, pcmToAac);
+        }
+
+        AACTask(int sampleRate, int size, byte[] buff, PcmToAac pcmToAac) {
+            this.sampleRate = sampleRate;
+            this.size = size;
+            this.buff = buff;
+            this.pcmToAac = pcmToAac;
+        }
+
+        @Override
+        public void run() {
+            if (pcmToAac == null)
+                return;
+            if (sampleRate > 0 && !pcmToAac.isInit())
+                pcmToAac.init(sampleRate);
+            if (size == 0 || buff == null) {
+                pcmToAac.onDestory();
+                pcmToAac = null;
+            } else if (!pcmToAac.isDestory())
+                pcmToAac.encodecPcmToAAc(size, buff);
+        }
+    }
+
+    private synchronized void initAACThread() {
+        if (mAACHandlerThread == null) {
+            mAACHandlerThread = new HandlerThread("aac handler thread");
+            mAACHandlerThread.start();
+            mAACHandler = new Handler(mAACHandlerThread.getLooper());
+        }
+    }
+
+    public void start2RecordAAC(File fileDest) {
+        if (mPcmToAac != null) {
+            LogUtil.e("please stopRecordAAC first");
+            return;
+        }
+        if (mAACHandler == null)
+            initAACThread();
+        mPcmToAac = new PcmToAac(fileDest);
+        nativePCMRecord(mNativePtr, true);
+        isOnRecording = true;
+        isPauseRecording = false;
+    }
+
+    public void pauseRecordAAC() {
+        if (mPcmToAac == null) {
+            LogUtil.e("please start2RecordAAC first");
+        }
+        LogUtil.d("---pauseRecordAAC---");
+        isPauseRecording = true;
+        nativePCMRecord(mNativePtr, false);
+    }
+
+    public void resumeRecordAAC() {
+        if (mPcmToAac == null) {
+            LogUtil.e("please start2RecordAAC first");
+        }
+        LogUtil.d("---resumeRecordAAC---");
+        isPauseRecording = false;
+        nativePCMRecord(mNativePtr, true);
+    }
+
+    public void stopRecordAAC() {
+        LogUtil.d("---stopRecordAAC---");
+        isOnRecording = false;
+        isPauseRecording = false;
+        nativePCMRecord(mNativePtr, false);
+        if (mPcmToAac != null)
+            mAACHandler.post(new AACTask(0, null, mPcmToAac));
+        mPcmToAac = null;
+    }
+
     private void onNativeCallPrepared() {
         LogUtil.d("--onNativeCallPrepared--");
     }
@@ -120,6 +215,7 @@ public class LeiAudioPlayer {
 
     public void onNativeCallFinished() {
         LogUtil.d("--onNativeCallFinished--");
+        stopRecordAAC();
         mHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -138,6 +234,11 @@ public class LeiAudioPlayer {
                 }
             }
         });
+    }
+
+    public void onNativePCMRecord(final int sampleRate, int size, byte[] buff) {
+        if (mPcmToAac != null && mAACHandler != null)
+            mAACHandler.post(new AACTask(sampleRate, size, buff, mPcmToAac));
     }
 
 
@@ -162,4 +263,6 @@ public class LeiAudioPlayer {
     private native void nativeSetPitch(long mNativePtr, float pitch);
 
     private native void nativeSetSpeed(long mNativePtr, float speed);
+
+    private native void nativePCMRecord(long mNativePtr, boolean recordPCM);
 }

@@ -17,12 +17,15 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.lei.ndk.R;
 import com.lei.ndk.util.FileUtil;
 
+import java.io.File;
+import java.text.DecimalFormat;
 import java.util.List;
 
 /**
@@ -36,54 +39,59 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     private static final int PLAY_STATUS_PLAYING = 1;
     private static final int PLAY_STATUS_PAUSE = 2;
     private LeiAudioPlayer mPlayer;
-    TextView textView_playDuration;
-    TextView textView_playTitle;
+    TextView textView_currentDuration;
+    TextView textView_allDuration;
     Button button_audioMute;
     Button button_status;
     Button button_pitch;
     Button button_speed;
+    Button button_recordStatus;
+    Button button_recordStop;
     ListView listView;
     SeekBar seekBar_playDuration;
     SeekBar seekBar_volume;
-    SeekBar seekBar_amplitude;
+    ProgressBar progressBar_amplitude;
     int currentSec;
     int allSec;
     List<MusicBean> mMusicFileList;
     MusicAdapter mAdapter;
-    int mPlaySelection;
+    int mPlaySelection = -1;
     int mPlayStatus;
     int colorMusicName;
     int colorMusicPath;
+    int colorPlayStatus;
     int audioMute = LeiAudioPlayer.Mute.DOUBLE;
     float pitch = 1.0f, speed = 1.0f;
-   
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_audio_test);
+
+        colorMusicName = getResources().getColor(R.color.colorAccent);
+        colorMusicPath = Color.rgb(100, 100, 100);
+        colorPlayStatus = getResources().getColor(R.color.colorplay);
+
+
         TextView textView = findViewById(R.id.tv_music_folder);
         textView.setText("请将音乐文件放在" + FileUtil.getMusicFolder(this));
-        textView_playDuration = findViewById(R.id.tv_playDuration);
+        textView_currentDuration = findViewById(R.id.tv_current_duration);
+        textView_allDuration = findViewById(R.id.tv_all_duration);
         seekBar_playDuration = findViewById(R.id.seekBar_playDuration);
-        textView_playTitle = findViewById(R.id.tv_play_title);
         button_status = findViewById(R.id.btn_status);
         button_pitch = findViewById(R.id.btn_pitch);
         button_speed = findViewById(R.id.btn_speed);
+        button_recordStatus = findViewById(R.id.btn_start_record);
+        button_recordStop = findViewById(R.id.btn_stop_record);
         seekBar_volume = findViewById(R.id.seekBar_volume);
-        seekBar_amplitude = findViewById(R.id.seekBar_amplitude);
-        seekBar_amplitude.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                return true;
-            }
-        });
+        progressBar_amplitude = findViewById(R.id.pb_amplitude);
         listView = findViewById(R.id.lv_music);
         button_audioMute = findViewById(R.id.btn_mute);
 
         mPlayer = new LeiAudioPlayer();
         mPlayer.setCallBack(this);
-        colorMusicName = getResources().getColor(R.color.colorAccent);
-        colorMusicPath = Color.rgb(100, 100, 100);
+
+
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -127,6 +135,8 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
 
             }
         });
+
+        init();
     }
 
     @Override
@@ -159,13 +169,11 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.btn_init:
-                init();
-                break;
             case R.id.btn_status:
                 if (mPlayStatus == PLAY_STATUS_STOPED) {
                     if (mMusicFileList == null || mMusicFileList.isEmpty())
                         return;
+                    mPlaySelection = 0;
                     playMusic();
                     button_status.setText("暂停");
                     return;
@@ -198,35 +206,61 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
                 mPlayer.setMute(audioMute);
                 break;
             case R.id.btn_pitch:
-                pitch += 0.5f;
-                if (pitch > 3.0f)
+                pitch += 0.2f;
+                if (pitch > 2.0f)
                     pitch = 1.0f;
-                button_pitch.setText("音调" + pitch + "倍");
+                button_pitch.setText("音调" + formatFeeFloat(pitch) + "倍");
                 mPlayer.setPitch(pitch);
                 break;
             case R.id.btn_speed:
-                speed += 0.5f;
-                if (speed > 3.0f)
+                speed += 0.2f;
+                if (speed > 2.0f)
                     speed = 1.0f;
-                button_speed.setText("音速" + speed + "倍");
+                button_speed.setText("音速" + formatFeeFloat(speed) + "倍");
                 mPlayer.setSpeed(speed);
+                break;
+            case R.id.btn_start_record:
+                if (mPlayer.isPauseRecording()) {
+                    mPlayer.resumeRecordAAC();
+                    button_recordStatus.setText("暂停录音");
+                    return;
+                }
+                if (mPlayer.isOnRecording()) {
+                    mPlayer.pauseRecordAAC();
+                    button_recordStatus.setText("继续录音");
+                    return;
+                }
+                if (mPlaySelection < 0)
+                    return;
+                String fileName = mMusicFileList.get(mPlaySelection).name;
+                int index = fileName.lastIndexOf(".");
+                if (index > 0)
+                    fileName = fileName.substring(0, index);
+                File saveDest = FileUtil.getRecordFile(this, fileName, ".aac", true);
+                mPlayer.start2RecordAAC(saveDest);
+                button_recordStatus.setText("暂停录音");
+                break;
+            case R.id.btn_stop_record:
+                mPlayer.stopRecordAAC();
+                button_recordStatus.setText("开始录音");
                 break;
         }
     }
 
     private void playMusic() {
-        textView_playTitle.postDelayed(new Runnable() {
+        button_recordStatus.setText("开始录音");
+        mAdapter.notifyDataSetChanged();
+        textView_currentDuration.postDelayed(new Runnable() {
             @Override
             public void run() {
                 seekBar_playDuration.setProgress(0);
                 mPlayer.setDataSource(mMusicFileList.get(mPlaySelection).path);
-                textView_playTitle.setText(mMusicFileList.get(mPlaySelection).name);
                 mPlayer.prepared();
                 mPlayer.setVolume(seekBar_volume.getProgress());
                 mPlayer.start();
                 mPlayStatus = PLAY_STATUS_PLAYING;
             }
-        }, 2000);
+        }, 1000);
 
     }
 
@@ -234,14 +268,15 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     public void onDurationChanged(int current, int all) {
         currentSec = current;
         allSec = all;
-        textView_playDuration.setText("进度：" + formatTime(current) + "/" + formatTime(all));
+        textView_currentDuration.setText(formatTime(current));
+        textView_allDuration.setText(formatTime(all));
         int percent = (int) ((current * 1.0f / all) * 100);
         seekBar_playDuration.setProgress(percent);
     }
 
     @Override
     public void onAmplitudeChanged(int amplitude) {
-        seekBar_amplitude.setProgress(amplitude);
+        progressBar_amplitude.setProgress(amplitude);
     }
 
     @Override
@@ -252,7 +287,6 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
         if (mPlaySelection >= mMusicFileList.size())
             mPlaySelection = 0;
         playMusic();
-
     }
 
     private String formatTime(int second) {
@@ -302,7 +336,18 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
                 spannableString.setSpan(new ForegroundColorSpan(colorMusicName), 0, musicName.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             textView.setText(spannableString);
             convertView = textView;
+            convertView.setBackgroundColor((mPlaySelection == position) ? colorPlayStatus : Color.WHITE);
             return convertView;
         }
+    }
+
+    public static String formatFeeFloat(float oil) {
+        DecimalFormat fnum = new DecimalFormat("##0.00");
+        float dd = Float.parseFloat(fnum.format(oil));
+        float n = oil - dd;
+        if (n >= 0.01) {
+            dd = dd + 0.01f;
+        }
+        return fnum.format(dd);
     }
 }

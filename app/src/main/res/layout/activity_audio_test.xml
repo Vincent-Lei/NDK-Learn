@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -12,44 +13,76 @@
         android:textColor="@color/colorPrimary"
         android:textSize="10sp" />
 
-    <TextView
-        android:id="@+id/tv_play_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="10dp"
-        android:ellipsize="end"
-        android:gravity="center"
-        android:maxLines="1"
-        android:textColor="@color/colorAccent"
-        android:textSize="16sp" />
-
+    <!--<TextView-->
+    <!--android:id="@+id/tv_play_title"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:layout_margin="10dp"-->
+    <!--android:ellipsize="end"-->
+    <!--android:gravity="center"-->
+    <!--android:maxLines="1"-->
+    <!--android:textColor="@color/colorAccent"-->
+    <!--android:textSize="16sp" />-->
     <Button
-        android:id="@+id/btn_init"
+        android:id="@+id/btn_status"
         android:layout_width="match_parent"
         android:layout_height="40dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
         android:onClick="onClick"
-        android:text="初始化" />
+        android:text="播放" />
+
+    <android.support.constraint.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp">
+
+        <TextView
+            android:id="@+id/tv_current_duration"
+            android:layout_width="40dp"
+            android:layout_height="0dp"
+            android:gravity="center"
+            android:textColor="@color/colorAccent"
+            android:textSize="10sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_all_duration"
+            android:layout_width="40dp"
+            android:layout_height="0dp"
+            android:gravity="center"
+            android:textColor="@color/colorAccent"
+            android:textSize="10sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <SeekBar
+            android:id="@+id/seekBar_playDuration"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="0"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toRightOf="@id/tv_current_duration"
+            app:layout_constraintRight_toLeftOf="@id/tv_all_duration"
+            app:layout_constraintTop_toTopOf="parent" />
+    </android.support.constraint.ConstraintLayout>
+
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="40dp"
-        android:layout_marginTop="10dp"
         android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/btn_status"
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:layout_marginRight="5dp"
-            android:layout_weight="1"
-            android:onClick="onClick"
-            android:text="播放" />
 
         <Button
             android:id="@+id/btn_mute"
             android:layout_width="match_parent"
             android:layout_height="40dp"
-            android:layout_marginLeft="5dp"
             android:layout_weight="1"
             android:onClick="onClick"
             android:text="立体声" />
@@ -58,7 +91,6 @@
             android:id="@+id/btn_pitch"
             android:layout_width="match_parent"
             android:layout_height="40dp"
-            android:layout_marginLeft="5dp"
             android:layout_weight="1"
             android:onClick="onClick"
             android:text="音调1.0倍" />
@@ -67,64 +99,88 @@
             android:id="@+id/btn_speed"
             android:layout_width="match_parent"
             android:layout_height="40dp"
-            android:layout_marginLeft="5dp"
             android:layout_weight="1"
             android:onClick="onClick"
             android:text="音速1.0倍" />
     </LinearLayout>
 
-
-    <TextView
-        android:id="@+id/tv_playDuration"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="进度："
-        android:textSize="12sp" />
+        android:layout_height="40dp"
+        android:orientation="horizontal">
 
-    <SeekBar
-        android:id="@+id/seekBar_playDuration"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="10dp"
-        android:max="100"
-        android:progress="0" />
 
-    <TextView
-        android:id="@+id/tv_volume"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="音量"
-        android:textSize="12sp" />
+        <Button
+            android:id="@+id/btn_start_record"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:onClick="onClick"
+            android:text="开始录音" />
 
-    <SeekBar
-        android:id="@+id/seekBar_volume"
+        <Button
+            android:id="@+id/btn_stop_record"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:onClick="onClick"
+            android:text="停止录音" />
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
-        android:max="100"
-        android:progress="50" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <TextView
+        <TextView
+            android:id="@+id/tv_volume"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="音量"
+            android:textSize="12sp" />
+
+        <SeekBar
+            android:id="@+id/seekBar_volume"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:max="100"
+            android:progress="50" />
+    </LinearLayout>
+
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="振幅"
-        android:textSize="12sp" />
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <SeekBar
-        android:id="@+id/seekBar_amplitude"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="10dp"
-        android:enabled="false"
-        android:max="100"
-        android:progress="50" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="振幅"
+            android:textSize="12sp" />
+
+        <ProgressBar
+            android:id="@+id/pb_amplitude"
+            style="@style/Base.Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:max="100" />
+
+    </LinearLayout>
 
     <ListView
         android:id="@+id/lv_music"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginTop="10dp"
         android:dividerHeight="5dp" />
 </LinearLayout>

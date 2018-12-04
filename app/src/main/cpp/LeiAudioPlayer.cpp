@@ -92,7 +92,6 @@ void *thread_prepared(void *data) {
         LOGE("can not init AVCodecContext");
         return 0;
     }
-
     if (avcodec_parameters_to_context(audioSource->pCodecCtx, audioSource->codecpar) < 0) {
         play->audioPlayStatus->isPreparedError = true;
         LOGE("can not fill parameters to AVCodecContext");
@@ -103,6 +102,7 @@ void *thread_prepared(void *data) {
         LOGE("can not open audio stream");
         return 0;
     }
+    LOGD("sample_fmt = %d", audioSource->pCodecCtx->sample_fmt);
     play->onPreparedFinished();
     return 0;
 };
@@ -171,6 +171,13 @@ void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context) {
                                              soundTouchBufferSize * 4);
             player->javaCallBack->callJavaAmplitude(CHILD_THREAD_CALL, db);
         }
+
+        if (player->isRecordPCM)
+            player->javaCallBack->callJavaPCMRecord(CHILD_THREAD_CALL,
+                                                    player->audioSource->codecpar->sample_rate,
+                                                    soundTouchBufferSize * 4,
+                                                    player->sampleBuffer);
+
         (*player->openSLES->pcmBufferQueue)->Enqueue(player->openSLES->pcmBufferQueue,
                                                      (char *) player->sampleBuffer,
                                                      soundTouchBufferSize * 2 * 2);
@@ -453,6 +460,10 @@ int LeiAudioPlayer::getPCMAmplitude(char *pcmcata, size_t pcmsize) {
         db = (int) 20.0 * log10(sum);
     }
     return db;
+}
+
+void LeiAudioPlayer::setRecordPCM(bool isRecordPCM) {
+    this->isRecordPCM = isRecordPCM;
 }
 
 

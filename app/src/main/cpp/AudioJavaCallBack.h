@@ -22,6 +22,7 @@ public:
     jmethodID jmid_callDuration = NULL;
     jmethodID jmid_callFinished = NULL;
     jmethodID jmid_callAmplitude = NULL;
+    jmethodID jmid_callPCMRecord = NULL;
 public:
     AudioJavaCallBack(JNIEnv *env, jobject *object);
 
@@ -38,6 +39,8 @@ public:
     void callJavaFinished(int type);
 
     void callJavaAmplitude(int type, int amplitude);
+
+    void callJavaPCMRecord(int type, int sampleRate, int size, void *buffer);
 };
 
 

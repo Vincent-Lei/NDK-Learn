@@ -24,6 +24,7 @@ public:
     uint8_t *resampleBuff = NULL;
     pthread_mutex_t mutex_seek;
 
+    bool isRecordPCM = false;
     //SoundTouch
     SoundTouch *soundTouch = NULL;
     SAMPLETYPE *sampleBuffer = NULL;
@@ -70,6 +71,8 @@ public:
     void setSpeed(float pitch);
 
     int getPCMAmplitude(char *pcmcata, size_t pcmsize);
+
+    void setRecordPCM(bool isRecordPCM);
 
 private:
     void resetToInit();

@@ -57,9 +57,11 @@ LeiOpenSLES::prepare(int rate, slAndroidSimpleBufferQueueCallback callback,
             SL_BYTEORDER_LITTLEENDIAN//结束标志
     };
     SLDataSource slDataSource = {&android_queue, &pcm};
-    const int SL_ID_COUNT = 3;
-    const SLInterfaceID ids[SL_ID_COUNT] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME, SL_IID_MUTESOLO};
-    const SLboolean req[SL_ID_COUNT] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
+    const int SL_ID_COUNT = 4;
+    const SLInterfaceID ids[SL_ID_COUNT] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME, SL_IID_PLAYBACKRATE,
+                                            SL_IID_MUTESOLO};
+    const SLboolean req[SL_ID_COUNT] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE,
+                                        SL_BOOLEAN_TRUE};
     (*engineEngine)->CreateAudioPlayer(engineEngine, &pcmPlayerObject, &slDataSource, &audioSnk,
                                        SL_ID_COUNT, ids, req);
     //初始化播放器

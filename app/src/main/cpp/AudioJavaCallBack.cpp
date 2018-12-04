@@ -18,7 +18,9 @@ AudioJavaCallBack::AudioJavaCallBack(JNIEnv *env, jobject *object) {
     this->jmid_callDuration = env->GetMethodID(java_class, "onNativeCallDuration",
                                                "(II)V");
     this->jmid_callAmplitude = env->GetMethodID(java_class, "onNativeCallAmplitude",
-                                               "(I)V");
+                                                "(I)V");
+    this->jmid_callPCMRecord = env->GetMethodID(java_class, "onNativePCMRecord",
+                                                "(II[B)V");
 }
 
 AudioJavaCallBack::~AudioJavaCallBack() {
@@ -93,12 +95,31 @@ void AudioJavaCallBack::callJavaFinished(int type) {
 
 void AudioJavaCallBack::callJavaAmplitude(int type, int amplitude) {
     if (type == MAIN_THREAD_CALL)
-        env->CallVoidMethod(java_instance, jmid_callAmplitude,amplitude);
+        env->CallVoidMethod(java_instance, jmid_callAmplitude, amplitude);
     else if (type == CHILD_THREAD_CALL) {
         extern JavaVM *m_thread_jvm;
         JNIEnv *jniEnv;
         if (m_thread_jvm->AttachCurrentThread(&jniEnv, NULL) == JNI_OK) {
-            jniEnv->CallVoidMethod(java_instance, jmid_callAmplitude,amplitude);
+            jniEnv->CallVoidMethod(java_instance, jmid_callAmplitude, amplitude);
+            m_thread_jvm->DetachCurrentThread();
+        }
+    }
+}
+
+void AudioJavaCallBack::callJavaPCMRecord(int type, int sampleRate, int size, void *buffer) {
+    if (type == MAIN_THREAD_CALL) {
+        jbyteArray jbyteArray1 = env->NewByteArray(size);
+        env->SetByteArrayRegion(jbyteArray1, 0, size, static_cast<const jbyte *>(buffer));
+        env->CallVoidMethod(java_instance, jmid_callPCMRecord, sampleRate,
+                            size, jbyteArray1);
+    } else if (type == CHILD_THREAD_CALL) {
+        extern JavaVM *m_thread_jvm;
+        JNIEnv *jniEnv;
+        if (m_thread_jvm->AttachCurrentThread(&jniEnv, NULL) == JNI_OK) {
+            jbyteArray jbyteArray1 = jniEnv->NewByteArray(size);
+            jniEnv->SetByteArrayRegion(jbyteArray1, 0, size, static_cast<const jbyte *>(buffer));
+            jniEnv->CallVoidMethod(java_instance, jmid_callPCMRecord, sampleRate,
+                                   size, jbyteArray1);
             m_thread_jvm->DetachCurrentThread();
         }
     }

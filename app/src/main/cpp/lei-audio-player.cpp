@@ -132,3 +132,14 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSetSpeed(JNIEnv *env, jobject instan
         player->setSpeed(speed);
 
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_lei_ndk_audio_LeiAudioPlayer_nativePCMRecord(JNIEnv *env, jobject instance,
+                                                      jlong mNativePtr, jboolean recordPCM) {
+
+    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    if (player)
+        player->setRecordPCM(recordPCM);
+
+}
