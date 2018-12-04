@@ -100,6 +100,10 @@ public class LeiAudioPlayer {
 
     public void destroy() {
         nativeDestroy(mNativePtr);
+        stopRecordAAC();
+        mHandler.removeCallbacksAndMessages(null);
+        if (mAACHandler != null)
+            mAACHandler.post(new AACTask(true, mAACHandlerThread));
     }
 
     public void start() {
@@ -115,6 +119,13 @@ public class LeiAudioPlayer {
         int size;
         byte[] buff;
         PcmToAac pcmToAac;
+        boolean finished;
+        HandlerThread handlerThread;
+
+        AACTask(boolean finished, HandlerThread handlerThread) {
+            this.finished = finished;
+            this.handlerThread = handlerThread;
+        }
 
         AACTask(int size, byte[] buff, PcmToAac pcmToAac) {
             this(0, size, buff, pcmToAac);
@@ -129,6 +140,12 @@ public class LeiAudioPlayer {
 
         @Override
         public void run() {
+            if (finished) {
+                if (handlerThread != null){
+                    handlerThread.quit();
+                    LogUtil.d("record handlerThread quit");
+                }
+            }
             if (pcmToAac == null)
                 return;
             if (sampleRate > 0 && !pcmToAac.isInit())
