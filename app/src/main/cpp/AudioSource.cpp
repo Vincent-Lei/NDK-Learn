@@ -59,6 +59,7 @@ void AudioSource::release() {
         LOGD("free pFormatCtx")
     }
     if (pCodecCtx != NULL) {
+//        avcodec_flush_buffers(pCodecCtx);
         avcodec_free_context(&pCodecCtx);
         pCodecCtx = NULL;
         LOGD("free pCodecCtx")

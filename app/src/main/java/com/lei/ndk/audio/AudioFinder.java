@@ -30,8 +30,6 @@ public class AudioFinder {
             if (!fileList[i].isFile() || !isFileIsMusic(fileList[i]))
                 continue;
             String name = fileList[i].getName();
-            if (name != null && name.endsWith(".ape"))
-                continue;
             musicFileList.add(new MusicBean(name, fileList[i].getAbsolutePath()));
         }
 

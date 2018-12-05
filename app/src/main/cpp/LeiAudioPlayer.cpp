@@ -112,12 +112,12 @@ void *thread_decoder(void *data) {
     AudioSource *audioSource = play->audioSource;
     AVPacket *avPacket = NULL;
     while (!play->audioPlayStatus->isExist) {
-
         if (play->audioPlayStatus->isSeek) {
+            usleep(50 * 1000);
             continue;
         }
         if (audioSource->getQueueSize() > MAX_QUEUE_SIZE) {
-            usleep(50 * 1000);
+            usleep(100 * 1000);
             continue;
         }
 
@@ -226,34 +226,44 @@ int LeiAudioPlayer::getSoundTouchData() {
 
 int LeiAudioPlayer::resampleAudioPacket(uint8_t **out_buffer) {
     int dataSize = 0;
-    AVPacket *avPacket = av_packet_alloc();
     while (!audioPlayStatus->isExist && !audioPlayStatus->isCostFinished) {
-        if (audioSource->packetPopQueue(avPacket) != 0) {
-            if (!audioPlayStatus->isDataOnLoad) {
-                LOGE("native load data")
-                audioPlayStatus->isDataOnLoad = true;
-                //call java
-                javaCallBack->callJavaDataOnLoad(CHILD_THREAD_CALL, true);
-            } else {
-                if (audioPlayStatus->isDataOnLoad) {
-                    LOGE("native play data")
-                    audioPlayStatus->isDataOnLoad = false;
+        if (isCurrentResampleReadFrameFinished) {
+            ////////////////////////
+            avPacket_currentResample = av_packet_alloc();
+            if (audioSource->packetPopQueue(avPacket_currentResample) != 0) {
+                av_packet_free(&avPacket_currentResample);
+                av_free(avPacket_currentResample);
+                if (!audioPlayStatus->isDataOnLoad) {
+                    LOGE("native load data")
+                    audioPlayStatus->isDataOnLoad = true;
                     //call java
-                    javaCallBack->callJavaDataOnLoad(CHILD_THREAD_CALL, false);
+                    javaCallBack->callJavaDataOnLoad(CHILD_THREAD_CALL, true);
+                } else {
+                    if (audioPlayStatus->isDataOnLoad) {
+                        LOGE("native play data")
+                        audioPlayStatus->isDataOnLoad = false;
+                        //call java
+                        javaCallBack->callJavaDataOnLoad(CHILD_THREAD_CALL, false);
+                    }
                 }
+                usleep(50 * 1000);
+                continue;
             }
-            continue;
-        }
-        if (avcodec_send_packet(audioSource->pCodecCtx, avPacket) != 0) {
-            av_packet_unref(avPacket);
-            av_packet_free(&avPacket);
-            continue;
+            if (avcodec_send_packet(audioSource->pCodecCtx, avPacket_currentResample) != 0) {
+                av_packet_unref(avPacket_currentResample);
+                av_packet_free(&avPacket_currentResample);
+                av_free(avPacket_currentResample);
+                usleep(50 * 1000);
+                continue;
+            }
+            ////////////////////////
         }
         //处理数据
         if (resampleBuff == NULL)
             resampleBuff = (uint8_t *) (malloc(audioSource->codecpar->sample_rate * 2 * 2));
         AVFrame *avFrame = av_frame_alloc();
         if (avcodec_receive_frame(audioSource->pCodecCtx, avFrame) == 0) {
+            isCurrentResampleReadFrameFinished = false;
             if (avFrame->channels && avFrame->channel_layout == 0) {
                 avFrame->channel_layout = av_get_default_channel_layout(avFrame->channels);
             } else if (avFrame->channels == 0 && avFrame->channel_layout > 0) {
@@ -291,14 +301,18 @@ int LeiAudioPlayer::resampleAudioPacket(uint8_t **out_buffer) {
                 }
                 swr_free(&swr_ctx);
             }
+        } else {
+            isCurrentResampleReadFrameFinished = true;
+            av_packet_unref(avPacket_currentResample);
+            av_packet_free(&avPacket_currentResample);
+            av_free(avPacket_currentResample);
+            avPacket_currentResample = NULL;
+            continue;
         }
         av_frame_free(&avFrame);
         av_free(avFrame);
-        av_packet_unref(avPacket);
         break;
     }
-    av_packet_free(&avPacket);
-    av_free(avPacket);
     return dataSize;
 }
 
@@ -367,6 +381,11 @@ void LeiAudioPlayer::resetToInit() {
         audioSource->release();
         delete audioSource;
         LOGD("delete audioSource")
+        if (avPacket_currentResample != NULL) {
+            av_packet_free(&avPacket_currentResample);
+            av_free(avPacket_currentResample);
+        }
+        isCurrentResampleReadFrameFinished = true;
     }
 }
 
@@ -416,6 +435,7 @@ void LeiAudioPlayer::seek(int64_t secTarget) {
         audioSource->clearAVPackgetQueue();
         pthread_mutex_lock(&mutex_seek);
         int64_t rel = secTarget * AV_TIME_BASE;
+        avcodec_flush_buffers(audioSource->pCodecCtx);
         avformat_seek_file(audioSource->pFormatCtx, -1, INT64_MIN, rel, INT64_MAX, 0);
         pthread_mutex_unlock(&mutex_seek);
         audioPlayStatus->isSeek = false;

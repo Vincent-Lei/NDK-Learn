@@ -36,6 +36,9 @@ public:
     float speed = 1.0f;
     int amplitudeCount = 0;
 
+    bool isCurrentResampleReadFrameFinished = true;
+    AVPacket *avPacket_currentResample = NULL;
+
 public:
     LeiAudioPlayer(JNIEnv *env, jobject *object);
 
