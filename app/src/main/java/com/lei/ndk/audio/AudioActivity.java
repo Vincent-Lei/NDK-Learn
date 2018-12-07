@@ -248,6 +248,7 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     }
 
     private void playMusic() {
+        button_status.setText("暂停");
         button_recordStatus.setText("开始录音");
         mAdapter.notifyDataSetChanged();
         textView_currentDuration.postDelayed(new Runnable() {

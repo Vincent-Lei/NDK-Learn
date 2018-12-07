@@ -9,7 +9,7 @@
 #define CHILD_THREAD_CALL 2
 
 #include "jni.h"
-#include "jni-onLoad.h"
+#include "../jni-onLoad.h"
 
 class AudioJavaCallBack {
 public:

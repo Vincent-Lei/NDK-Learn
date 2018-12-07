@@ -10,7 +10,7 @@
 
 #include <SLES/OpenSLES.h>
 #include "SLES/OpenSLES_Android.h"
-#include "native-log.h"
+#include "../native-log.h"
 
 
 class LeiOpenSLES {

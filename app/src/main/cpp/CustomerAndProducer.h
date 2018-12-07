@@ -5,7 +5,7 @@
 #ifndef NDK_LEARN_CUSTOMERANDPRODUCER_H
 #define NDK_LEARN_CUSTOMERANDPRODUCER_H
 
-#include "native-log.h"
+#include "../native-log.h"
 #include "pthread.h"
 #include <unistd.h>
 

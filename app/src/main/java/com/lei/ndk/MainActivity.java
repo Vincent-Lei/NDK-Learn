@@ -9,6 +9,7 @@ import android.view.View;
 
 import com.lei.ndk.audio.AudioActivity;
 import com.lei.ndk.nativetest.NativeTestActivity;
+import com.lei.ndk.opengles.OpenGLESTestActivity;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -29,6 +30,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.btn_audio:
                 startActivity(new Intent(this, AudioActivity.class));
+                break;
+            case R.id.btn_opengles_test:
+                startActivity(new Intent(this, OpenGLESTestActivity.class));
                 break;
         }
     }

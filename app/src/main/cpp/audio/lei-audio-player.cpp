@@ -2,7 +2,7 @@
 // Created by Android on 2018/11/21.
 //
 #include "jni.h"
-#include "native-log.h"
+#include "../native-log.h"
 #include "LeiAudioPlayer.h"
 #include "stdlib.h"
 #include "cstring"

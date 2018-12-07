@@ -19,4 +19,10 @@
         android:layout_height="40dp"
         android:onClick="onClick"
         android:text="播放音频" />
+    <Button
+        android:id="@+id/btn_opengles_test"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:onClick="onClick"
+        android:text="OpenGLES_Test" />
 </LinearLayout>

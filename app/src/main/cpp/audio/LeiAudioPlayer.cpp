@@ -113,11 +113,11 @@ void *thread_decoder(void *data) {
     AVPacket *avPacket = NULL;
     while (!play->audioPlayStatus->isExist) {
         if (play->audioPlayStatus->isSeek) {
-            usleep(50 * 1000);
+            usleep(10 * 1000);
             continue;
         }
         if (audioSource->getQueueSize() > MAX_QUEUE_SIZE) {
-            usleep(100 * 1000);
+            usleep(50 * 1000);
             continue;
         }
 
@@ -228,6 +228,7 @@ int LeiAudioPlayer::resampleAudioPacket(uint8_t **out_buffer) {
     int dataSize = 0;
     while (!audioPlayStatus->isExist && !audioPlayStatus->isCostFinished) {
         if (isCurrentResampleReadFrameFinished) {
+            //.ape音乐一个AvPacket包含多个AvFrame
             ////////////////////////
             avPacket_currentResample = av_packet_alloc();
             if (audioSource->packetPopQueue(avPacket_currentResample) != 0) {
@@ -246,14 +247,13 @@ int LeiAudioPlayer::resampleAudioPacket(uint8_t **out_buffer) {
                         javaCallBack->callJavaDataOnLoad(CHILD_THREAD_CALL, false);
                     }
                 }
-                usleep(50 * 1000);
+                usleep(10 * 1000);
                 continue;
             }
             if (avcodec_send_packet(audioSource->pCodecCtx, avPacket_currentResample) != 0) {
                 av_packet_unref(avPacket_currentResample);
                 av_packet_free(&avPacket_currentResample);
                 av_free(avPacket_currentResample);
-                usleep(50 * 1000);
                 continue;
             }
             ////////////////////////

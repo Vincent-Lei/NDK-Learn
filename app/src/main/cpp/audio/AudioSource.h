@@ -9,7 +9,7 @@
 #include "jni.h"
 #include "pthread.h"
 #include "AudioPlayStatus.h"
-#include "native-log.h"
+#include "../native-log.h"
 
 #define AUDIO_STREAM_NO_FOUND -1
 #define MAX_QUEUE_SIZE 80
