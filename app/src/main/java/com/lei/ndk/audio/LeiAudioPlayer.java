@@ -99,8 +99,10 @@ public class LeiAudioPlayer {
     }
 
     public void destroy() {
-        nativeDestroy(mNativePtr);
         stopRecordAAC();
+        if (mNativePtr > 0)
+            nativeDestroy(mNativePtr);
+        mNativePtr = 0;
         mHandler.removeCallbacksAndMessages(null);
         if (mAACHandler != null)
             mAACHandler.post(new AACTask(true, mAACHandlerThread));
@@ -141,7 +143,7 @@ public class LeiAudioPlayer {
         @Override
         public void run() {
             if (finished) {
-                if (handlerThread != null){
+                if (handlerThread != null) {
                     handlerThread.quit();
                     LogUtil.d("record handlerThread quit");
                 }

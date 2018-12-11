@@ -1,15 +1,20 @@
 cmake_minimum_required(VERSION 3.4.1)
+include_directories(src/main/cpp/test)
+include_directories(src/main/cpp/globle)
 include_directories(src/main/cpp/include)
 include_directories(src/main/cpp/audio)
+include_directories(src/main/cpp/libaudio)
 include_directories(src/main/cpp/soundtouch/include)
 include_directories(src/main/cpp/soundtouch/SoundTouch)
 
+file(GLOB native_test_files "${CMAKE_SOURCE_DIR}/src/main/cpp/test/*.cpp")
 file(GLOB native_cpp_files "${CMAKE_SOURCE_DIR}/src/main/cpp/*.cpp")
 file(GLOB native_c_files "${CMAKE_SOURCE_DIR}/src/main/cpp/*.c")
-file(GLOB native_audio_files "${CMAKE_SOURCE_DIR}/src/main/cpp/audio/*.cpp")
+file(GLOB native_globle_files "${CMAKE_SOURCE_DIR}/src/main/cpp/globle/*.cpp")
+file(GLOB native_lib_audio_files "${CMAKE_SOURCE_DIR}/src/main/cpp/libaudio/*.cpp")
 file(GLOB native_soundtouch_files "${CMAKE_SOURCE_DIR}/src/main/cpp/soundtouch/SoundTouch/*.cpp")
 
-add_library(native-lib SHARED ${native_cpp_files} ${native_c_files} ${native_audio_files} ${native_soundtouch_files})
+add_library(native-lib SHARED ${native_test_files} ${native_globle_files} ${native_cpp_files} ${native_c_files} ${native_lib_audio_files} ${native_soundtouch_files})
 
 #add_library( # Sets the name of the library.
 #        native-lib

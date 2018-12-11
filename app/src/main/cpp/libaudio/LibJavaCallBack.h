@@ -1,17 +1,16 @@
 //
-// Created by Android on 2018/11/21.
+// Created by Android on 2018/12/10.
 //
 
-#ifndef NDK_LEARN_AUDIOJAVACALLBACK_H
-#define NDK_LEARN_AUDIOJAVACALLBACK_H
-
+#ifndef NDK_LEARN_LIBJAVACALLBACK_H
+#define NDK_LEARN_LIBJAVACALLBACK_H
 #define MAIN_THREAD_CALL 1
 #define CHILD_THREAD_CALL 2
 
 #include "jni.h"
-#include "../jni-onLoad.h"
+#include "../globle/jni-onLoad.h"
 
-class AudioJavaCallBack {
+class LibJavaCallBack {
 public:
     JNIEnv *env = NULL;
     jobject java_instance;
@@ -23,10 +22,10 @@ public:
     jmethodID jmid_callFinished = NULL;
     jmethodID jmid_callAmplitude = NULL;
     jmethodID jmid_callPCMRecord = NULL;
-public:
-    AudioJavaCallBack(JNIEnv *env, jobject *object);
 
-    ~AudioJavaCallBack();
+    LibJavaCallBack(JNIEnv *env, jobject *object);
+
+    ~LibJavaCallBack();
 
     void callJavaPrepared(int type);
 
@@ -44,4 +43,4 @@ public:
 };
 
 
-#endif //NDK_LEARN_AUDIOJAVACALLBACK_H
+#endif //NDK_LEARN_LIBJAVACALLBACK_H

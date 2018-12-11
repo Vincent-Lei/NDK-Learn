@@ -2,8 +2,8 @@
 // Created by Android on 2018/11/21.
 //
 #include "jni.h"
-#include "../native-log.h"
-#include "LeiAudioPlayer.h"
+#include "../globle/native-log.h"
+#include "LibAudioPlayer.h"
 #include "stdlib.h"
 #include "cstring"
 
@@ -11,9 +11,8 @@
 extern "C"
 JNIEXPORT jlong JNICALL
 Java_com_lei_ndk_audio_LeiAudioPlayer_nativeInit(JNIEnv *env, jobject instance) {
-    LeiAudioPlayer *player = new LeiAudioPlayer(env, &instance);
-    player->initFFMPEG();
-    LOGD("native create player success ptr：%d", player);
+    LibAudioPlayer *player = new LibAudioPlayer(env, &instance);
+//    LOGD("native create player success ptr：%d", (int)player);
     return (jlong) (player);
 }
 
@@ -22,14 +21,14 @@ JNIEXPORT void JNICALL
 Java_com_lei_ndk_audio_LeiAudioPlayer_nativePrepare(JNIEnv *env, jobject instance, jlong mNativePtr,
                                                     jstring dataSource_) {
     const char *dataSource = env->GetStringUTFChars(dataSource_, 0);
-    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    LibAudioPlayer *player = (LibAudioPlayer * )(mNativePtr);
     if (player != NULL) {
         const int len = strlen(dataSource);
         char *copy_data = (char *) (malloc(sizeof(char) * (len + 1)));
         strcpy(copy_data, dataSource);
         copy_data[len] = '\0';
         LOGD("%s", copy_data);
-        player->prepared(copy_data);
+        player->prepare(copy_data);
     }
     env->ReleaseStringUTFChars(dataSource_, dataSource);
 }
@@ -37,7 +36,7 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativePrepare(JNIEnv *env, jobject instanc
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_lei_ndk_audio_LeiAudioPlayer_nativeStart(JNIEnv *env, jobject instance, jlong mNativePtr) {
-    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    LibAudioPlayer *player = (LibAudioPlayer * )(mNativePtr);
     if (player != NULL) {
         player->start();
     }
@@ -47,7 +46,7 @@ Java_com_lei_ndk_audio_LeiAudioPlayer_nativeStart(JNIEnv *env, jobject instance,
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_lei_ndk_audio_LeiAudioPlayer_nativePause(JNIEnv *env, jobject instance, jlong mNativePtr) {
-    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    LibAudioPlayer *player = (LibAudioPlayer * )(mNativePtr);
     if (player)
         player->onPause();
 
@@ -57,7 +56,7 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_com_lei_ndk_audio_LeiAudioPlayer_nativeResume(JNIEnv *env, jobject instance,
                                                    jlong mNativePtr) {
-    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    LibAudioPlayer *player = (LibAudioPlayer * )(mNativePtr);
     if (player)
         player->onResume();
 
@@ -68,7 +67,7 @@ JNIEXPORT void JNICALL
 Java_com_lei_ndk_audio_LeiAudioPlayer_nativeDestroy(JNIEnv *env, jobject instance,
                                                     jlong mNativePtr) {
 
-    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    LibAudioPlayer *player = (LibAudioPlayer * )(mNativePtr);
     if (player) {
         player->destroy();
         delete player;
@@ -80,7 +79,7 @@ JNIEXPORT void JNICALL
 Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSeek(JNIEnv *env, jobject instance, jlong mNativePtr,
                                                  jint second) {
 
-    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    LibAudioPlayer *player = (LibAudioPlayer * )(mNativePtr);
     if (player) {
         player->seek(second);
     }
@@ -92,7 +91,7 @@ JNIEXPORT void JNICALL
 Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSetVolume(JNIEnv *env, jobject instance,
                                                       jlong mNativePtr, jint percent) {
 
-    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    LibAudioPlayer *player = (LibAudioPlayer * )(mNativePtr);
     if (player) {
         player->setVolume(percent);
     }
@@ -104,7 +103,7 @@ JNIEXPORT void JNICALL
 Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSetMute(JNIEnv *env, jobject instance, jlong mNativePtr,
                                                     jint mute) {
 
-    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    LibAudioPlayer *player = (LibAudioPlayer * )(mNativePtr);
     if (player) {
         player->setMute(mute);
     }
@@ -116,7 +115,7 @@ JNIEXPORT void JNICALL
 Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSetPitch(JNIEnv *env, jobject instance,
                                                      jlong mNativePtr, jfloat pitch) {
 
-    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    LibAudioPlayer *player = (LibAudioPlayer * )(mNativePtr);
     if (player)
         player->setPitch(pitch);
 
@@ -127,7 +126,7 @@ JNIEXPORT void JNICALL
 Java_com_lei_ndk_audio_LeiAudioPlayer_nativeSetSpeed(JNIEnv *env, jobject instance,
                                                      jlong mNativePtr, jfloat speed) {
 
-    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
+    LibAudioPlayer *player = (LibAudioPlayer * )(mNativePtr);
     if (player)
         player->setSpeed(speed);
 
@@ -138,8 +137,11 @@ JNIEXPORT void JNICALL
 Java_com_lei_ndk_audio_LeiAudioPlayer_nativePCMRecord(JNIEnv *env, jobject instance,
                                                       jlong mNativePtr, jboolean recordPCM) {
 
-    LeiAudioPlayer *player = (LeiAudioPlayer *) (mNativePtr);
-    if (player)
+    LibAudioPlayer *player = (LibAudioPlayer * )(mNativePtr);
+    if (player){
+        LOGD("--setRecordPCM1--")
         player->setRecordPCM(recordPCM);
+        LOGD("--setRecordPCM2--")
+    }
 
 }

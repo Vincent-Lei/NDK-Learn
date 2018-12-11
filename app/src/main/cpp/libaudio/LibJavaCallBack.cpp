@@ -1,11 +1,10 @@
 //
-// Created by Android on 2018/11/21.
+// Created by Android on 2018/12/10.
 //
 
-#include "AudioJavaCallBack.h"
+#include "LibJavaCallBack.h"
 
-
-AudioJavaCallBack::AudioJavaCallBack(JNIEnv *env, jobject *object) {
+LibJavaCallBack::LibJavaCallBack(JNIEnv *env, jobject *object) {
     this->env = env;
     this->java_instance = env->NewGlobalRef(*object);
     this->java_class = env->GetObjectClass(java_instance);
@@ -23,11 +22,11 @@ AudioJavaCallBack::AudioJavaCallBack(JNIEnv *env, jobject *object) {
                                                 "(II[B)V");
 }
 
-AudioJavaCallBack::~AudioJavaCallBack() {
+LibJavaCallBack::~LibJavaCallBack() {
 
 }
 
-void AudioJavaCallBack::callJavaPrepared(int type) {
+void LibJavaCallBack::callJavaPrepared(int type) {
     if (type == MAIN_THREAD_CALL)
         env->CallVoidMethod(java_instance, jmid_callPrepared);
     else if (type == CHILD_THREAD_CALL) {
@@ -40,7 +39,7 @@ void AudioJavaCallBack::callJavaPrepared(int type) {
     }
 }
 
-void AudioJavaCallBack::callJavaError(int type, int code, char *msg) {
+void LibJavaCallBack::callJavaError(int type, int code, char *msg) {
     if (type == MAIN_THREAD_CALL)
         env->CallVoidMethod(java_instance, jmid_callError, code, msg);
     else if (type == CHILD_THREAD_CALL) {
@@ -53,20 +52,7 @@ void AudioJavaCallBack::callJavaError(int type, int code, char *msg) {
     }
 }
 
-void AudioJavaCallBack::callJavaDataOnLoad(int type, bool onLoad) {
-    if (type == MAIN_THREAD_CALL)
-        env->CallVoidMethod(java_instance, jmid_callDataOnLoad, onLoad);
-    else if (type == CHILD_THREAD_CALL) {
-        extern JavaVM *m_thread_jvm;
-        JNIEnv *jniEnv;
-        if (m_thread_jvm->AttachCurrentThread(&jniEnv, NULL) == JNI_OK) {
-            jniEnv->CallVoidMethod(java_instance, jmid_callDataOnLoad, onLoad);
-            m_thread_jvm->DetachCurrentThread();
-        }
-    }
-}
-
-void AudioJavaCallBack::callJavaDuration(int type, int current, int all) {
+void LibJavaCallBack::callJavaDuration(int type, int current, int all) {
     if (type == MAIN_THREAD_CALL)
         env->CallVoidMethod(java_instance, jmid_callDuration, current, all);
     else if (type == CHILD_THREAD_CALL) {
@@ -79,7 +65,7 @@ void AudioJavaCallBack::callJavaDuration(int type, int current, int all) {
     }
 }
 
-void AudioJavaCallBack::callJavaFinished(int type) {
+void LibJavaCallBack::callJavaFinished(int type) {
     if (type == MAIN_THREAD_CALL)
         env->CallVoidMethod(java_instance, jmid_callFinished);
     else if (type == CHILD_THREAD_CALL) {
@@ -92,8 +78,7 @@ void AudioJavaCallBack::callJavaFinished(int type) {
     }
 }
 
-
-void AudioJavaCallBack::callJavaAmplitude(int type, int amplitude) {
+void LibJavaCallBack::callJavaAmplitude(int type, int amplitude) {
     if (type == MAIN_THREAD_CALL)
         env->CallVoidMethod(java_instance, jmid_callAmplitude, amplitude);
     else if (type == CHILD_THREAD_CALL) {
@@ -106,7 +91,7 @@ void AudioJavaCallBack::callJavaAmplitude(int type, int amplitude) {
     }
 }
 
-void AudioJavaCallBack::callJavaPCMRecord(int type, int sampleRate, int size, void *buffer) {
+void LibJavaCallBack::callJavaPCMRecord(int type, int sampleRate, int size, void *buffer) {
     if (type == MAIN_THREAD_CALL) {
         jbyteArray jbyteArray1 = env->NewByteArray(size);
         env->SetByteArrayRegion(jbyteArray1, 0, size, static_cast<const jbyte *>(buffer));
@@ -120,6 +105,19 @@ void AudioJavaCallBack::callJavaPCMRecord(int type, int sampleRate, int size, vo
             jniEnv->SetByteArrayRegion(jbyteArray1, 0, size, static_cast<const jbyte *>(buffer));
             jniEnv->CallVoidMethod(java_instance, jmid_callPCMRecord, sampleRate,
                                    size, jbyteArray1);
+            m_thread_jvm->DetachCurrentThread();
+        }
+    }
+}
+
+void LibJavaCallBack::callJavaDataOnLoad(int type, bool onLoad) {
+    if (type == MAIN_THREAD_CALL)
+        env->CallVoidMethod(java_instance, jmid_callDataOnLoad, onLoad);
+    else if (type == CHILD_THREAD_CALL) {
+        extern JavaVM *m_thread_jvm;
+        JNIEnv *jniEnv;
+        if (m_thread_jvm->AttachCurrentThread(&jniEnv, NULL) == JNI_OK) {
+            jniEnv->CallVoidMethod(java_instance, jmid_callDataOnLoad, onLoad);
             m_thread_jvm->DetachCurrentThread();
         }
     }

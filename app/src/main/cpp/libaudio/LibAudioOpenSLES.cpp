@@ -1,18 +1,18 @@
 //
-// Created by Android on 2018/11/29.
+// Created by Android on 2018/12/10.
 //
 
-#include "LeiOpenSLES.h"
+#include "LibAudioOpenSLES.h"
 
-LeiOpenSLES::LeiOpenSLES() {
+LibAudioOpenSLES::LibAudioOpenSLES() {
     init();
 }
 
-LeiOpenSLES::~LeiOpenSLES() {
-
+LibAudioOpenSLES::~LibAudioOpenSLES() {
+    releaseSLES();
 }
 
-void LeiOpenSLES::init() {
+void LibAudioOpenSLES::init() {
     SLresult result;
     result = slCreateEngine(&engineObject, 0, 0, 0, 0, 0);
     result = (*engineObject)->Realize(engineObject, SL_BOOLEAN_FALSE);
@@ -36,52 +36,7 @@ void LeiOpenSLES::init() {
     }
 }
 
-
-void
-LeiOpenSLES::prepare(int rate, slAndroidSimpleBufferQueueCallback callback,
-                     void *callBackContext) {
-    this->callBack = callback;
-    this->callBackContext = callBackContext;
-    SLDataLocator_OutputMix outputMix = {SL_DATALOCATOR_OUTPUTMIX, outputMixObject};
-    SLDataSink audioSnk = {&outputMix, 0};
-    // 第三步，配置PCM格式信息
-    SLDataLocator_AndroidSimpleBufferQueue android_queue = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE,
-                                                            2};
-    SLDataFormat_PCM pcm = {
-            SL_DATAFORMAT_PCM,//播放pcm格式的数据
-            2,//2个声道（立体声）
-            static_cast<SLuint32>(getCurrentSampleRateForOpenSLES(rate)),//44100hz的频率
-            SL_PCMSAMPLEFORMAT_FIXED_16,//位数 16位
-            SL_PCMSAMPLEFORMAT_FIXED_16,//和位数一致就行
-            SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,//立体声（前左前右）
-            SL_BYTEORDER_LITTLEENDIAN//结束标志
-    };
-    SLDataSource slDataSource = {&android_queue, &pcm};
-    const int SL_ID_COUNT = 4;
-    const SLInterfaceID ids[SL_ID_COUNT] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME, SL_IID_PLAYBACKRATE,
-                                            SL_IID_MUTESOLO};
-    const SLboolean req[SL_ID_COUNT] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE,
-                                        SL_BOOLEAN_TRUE};
-    (*engineEngine)->CreateAudioPlayer(engineEngine, &pcmPlayerObject, &slDataSource, &audioSnk,
-                                       SL_ID_COUNT, ids, req);
-    //初始化播放器
-    (*pcmPlayerObject)->Realize(pcmPlayerObject, SL_BOOLEAN_FALSE);
-
-//    得到接口后调用  获取Player接口
-    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_PLAY, &pcmPlayerPlay);
-    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_VOLUME, &pcmVolumePlay);
-    //获取声道接口
-    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_MUTESOLO, &pcmMutePlay);
-    setVolume(volumePercent);
-    setMute(audioMute);
-
-//    注册回调缓冲区 获取缓冲队列接口
-    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_BUFFERQUEUE, &pcmBufferQueue);
-    //缓冲接口回调
-    (*pcmBufferQueue)->RegisterCallback(pcmBufferQueue, this->callBack, this->callBackContext);
-}
-
-int LeiOpenSLES::getCurrentSampleRateForOpenSLES(int sample_rate) {
+int LibAudioOpenSLES::getCurrentSampleRateForOpenSLES(int sample_rate) {
     int rate = 0;
     switch (sample_rate) {
         case 8000:
@@ -129,35 +84,78 @@ int LeiOpenSLES::getCurrentSampleRateForOpenSLES(int sample_rate) {
     return rate;
 }
 
-void LeiOpenSLES::play() {
+void LibAudioOpenSLES::prepare(int rate, slAndroidSimpleBufferQueueCallback callback,
+                               void *callBackContext) {
+    this->callBack = callback;
+    this->callBackContext = callBackContext;
+    SLDataLocator_OutputMix outputMix = {SL_DATALOCATOR_OUTPUTMIX, outputMixObject};
+    SLDataSink audioSnk = {&outputMix, 0};
+    // 第三步，配置PCM格式信息
+    SLDataLocator_AndroidSimpleBufferQueue android_queue = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE,
+                                                            2};
+    SLDataFormat_PCM pcm = {
+            SL_DATAFORMAT_PCM,//播放pcm格式的数据
+            2,//2个声道（立体声）
+            static_cast<SLuint32>(getCurrentSampleRateForOpenSLES(rate)),//44100hz的频率
+            SL_PCMSAMPLEFORMAT_FIXED_16,//位数 16位
+            SL_PCMSAMPLEFORMAT_FIXED_16,//和位数一致就行
+            SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,//立体声（前左前右）
+            SL_BYTEORDER_LITTLEENDIAN//结束标志
+    };
+    SLDataSource slDataSource = {&android_queue, &pcm};
+    const int SL_ID_COUNT = 4;
+    const SLInterfaceID ids[SL_ID_COUNT] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME, SL_IID_PLAYBACKRATE,
+                                            SL_IID_MUTESOLO};
+    const SLboolean req[SL_ID_COUNT] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE,
+                                        SL_BOOLEAN_TRUE};
+    (*engineEngine)->CreateAudioPlayer(engineEngine, &pcmPlayerObject, &slDataSource, &audioSnk,
+                                       SL_ID_COUNT, ids, req);
+    //初始化播放器
+    (*pcmPlayerObject)->Realize(pcmPlayerObject, SL_BOOLEAN_FALSE);
+
+//    得到接口后调用  获取Player接口
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_PLAY, &pcmPlayerPlay);
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_VOLUME, &pcmVolumePlay);
+    //获取声道接口
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_MUTESOLO, &pcmMutePlay);
+    setVolume(volumePercent);
+    setMute(audioMute);
+
+//    注册回调缓冲区 获取缓冲队列接口
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_BUFFERQUEUE, &pcmBufferQueue);
+    //缓冲接口回调
+    (*pcmBufferQueue)->RegisterCallback(pcmBufferQueue, this->callBack, this->callBackContext);
+}
+
+void LibAudioOpenSLES::play() {
     if (pcmPlayerPlay) {
         (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PLAYING);
         callBack(pcmBufferQueue, callBackContext);
     }
 }
 
-void LeiOpenSLES::stop() {
+void LibAudioOpenSLES::stop() {
     if (pcmPlayerPlay) {
         (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_STOPPED);
         LOGD("native OpenSLES stop")
     }
 }
 
-void LeiOpenSLES::pause() {
+void LibAudioOpenSLES::pause() {
     if (pcmPlayerPlay) {
         (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PAUSED);
         LOGD("native OpenSLES pause")
     }
 }
 
-void LeiOpenSLES::resume() {
+void LibAudioOpenSLES::resume() {
     if (pcmPlayerPlay) {
         (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PLAYING);
         LOGD("native OpenSLES resume")
     }
 }
 
-void LeiOpenSLES::releasePlayer() {
+void LibAudioOpenSLES::releasePlayer() {
     stop();
     if (pcmPlayerObject) {
         (*pcmPlayerObject)->Destroy(pcmPlayerObject);
@@ -168,10 +166,9 @@ void LeiOpenSLES::releasePlayer() {
         pcmMutePlay = NULL;
         LOGD("freeSLES--pcmPlayerObject")
     }
-
 }
 
-void LeiOpenSLES::releaseSLES() {
+void LibAudioOpenSLES::releaseSLES() {
     releasePlayer();
     if (outputMixObject) {
         (*outputMixObject)->Destroy(outputMixObject);
@@ -188,7 +185,7 @@ void LeiOpenSLES::releaseSLES() {
     }
 }
 
-void LeiOpenSLES::setVolume(int percent) {
+void LibAudioOpenSLES::setVolume(int percent) {
     volumePercent = percent;
     if (pcmVolumePlay != NULL) {
         if (percent > 30) {
@@ -213,7 +210,7 @@ void LeiOpenSLES::setVolume(int percent) {
     }
 }
 
-void LeiOpenSLES::setMute(int mute) {
+void LibAudioOpenSLES::setMute(int mute) {
     this->audioMute = mute;
     if (pcmMutePlay != NULL) {
         if (mute == AUDIO_MUTE_RIFGT)//right
@@ -233,3 +230,4 @@ void LeiOpenSLES::setMute(int mute) {
 
     }
 }
+

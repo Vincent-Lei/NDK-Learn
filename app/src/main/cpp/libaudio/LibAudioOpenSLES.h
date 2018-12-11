@@ -1,20 +1,20 @@
 //
-// Created by Android on 2018/11/29.
+// Created by Android on 2018/12/10.
 //
 
-#ifndef NDK_LEARN_LEIOPENSLES_H
-#define NDK_LEARN_LEIOPENSLES_H
+#ifndef NDK_LEARN_LIBAUDIOOPENSLES_H
+#define NDK_LEARN_LIBAUDIOOPENSLES_H
 #define AUDIO_MUTE_LEFT 1
 #define AUDIO_MUTE_RIFGT 0
 #define AUDIO_MUTE_DOUBLE 2
 
 #include <SLES/OpenSLES.h>
 #include "SLES/OpenSLES_Android.h"
-#include "../native-log.h"
+#include "../globle/native-log.h"
 
-
-class LeiOpenSLES {
+class LibAudioOpenSLES {
 public:
+
     slAndroidSimpleBufferQueueCallback callBack;
     void *callBackContext;
     // 引擎接口
@@ -37,11 +37,11 @@ public:
     SLAndroidSimpleBufferQueueItf pcmBufferQueue = NULL;
 
     int volumePercent = 50;
-    int audioMute = AUDIO_MUTE_DOUBLE ;
-public:
-    LeiOpenSLES();
+    int audioMute = AUDIO_MUTE_DOUBLE;
 
-    ~LeiOpenSLES();
+    LibAudioOpenSLES();
+
+    ~LibAudioOpenSLES();
 
     int getCurrentSampleRateForOpenSLES(int sample_rate);
 
@@ -57,15 +57,15 @@ public:
 
     void releasePlayer();
 
-    void releaseSLES();
-
     void setVolume(int percent);
 
     void setMute(int mute);
 
 private:
     void init();
+    void releaseSLES();
+
 };
 
 
-#endif //NDK_LEARN_LEIOPENSLES_H
+#endif //NDK_LEARN_LIBAUDIOOPENSLES_H
