@@ -64,7 +64,7 @@ public class AudioFinder {
     private static boolean isFileIsMusic(File file) {
         if (file != null && file.exists() && file.getName() != null) {
             String name = file.getName();
-            return name.endsWith(".mp3") || name.endsWith(".ape") || name.endsWith(".wav")|| name.endsWith(".amr");
+            return name.endsWith(".mp3") || name.endsWith(".ape") || name.endsWith(".wav")|| name.endsWith(".amr")|| name.endsWith(".aac");
         }
         return false;
     }

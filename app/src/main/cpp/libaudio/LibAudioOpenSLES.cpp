@@ -226,8 +226,6 @@ void LibAudioOpenSLES::setMute(int mute) {
             (*pcmMutePlay)->SetChannelMute(pcmMutePlay, 1, false);
             (*pcmMutePlay)->SetChannelMute(pcmMutePlay, 0, false);
         }
-
-
     }
 }
 

@@ -27,6 +27,7 @@ void *audio_prepare_thread(void *data) {
     } else
         player->playState->isErrorInPrepared = true;
     player->playState->isPrepared = true;
+    player->javaCallBack->callJavaPrepared(CHILD_THREAD_CALL);
     LOGD("audio_prepare_thread finished")
     if (player->playState->isNeedStartedAfterPrepared)
         player->start();
@@ -72,11 +73,10 @@ void LibAudioPlayer::resetForPrepare() {
         pthread_join(audioSource->thread_start, NULL);
         audioSource->release();
     }
-    if (openSLES)
-        openSLES->releasePlayer();
-//    LOGD("---------------------222-------------------");
     if (FFMPEG)
         FFMPEG->release();
+    if (openSLES)
+        openSLES->releasePlayer();
     playState->init();
     isSoundTouchFinished = false;
 }
@@ -91,18 +91,16 @@ void pcmBufferCallBack2(SLAndroidSimpleBufferQueueItf bf, void *context) {
     LibAudioPlayer *player = (LibAudioPlayer *) (context);
     int soundTouchBufferSize = player->getSoundTouchData();
     if (soundTouchBufferSize > 0) {
-//        LOGD("---------------------111-------------------");
         player->FFMPEG->clock +=
-                soundTouchBufferSize /
-                ((double) (player->FFMPEG->codecpar->sample_rate * 2 * 2));
-        if (player->FFMPEG->clock - player->FFMPEG->last_clock >= 0.5) {
+                soundTouchBufferSize / ((double) (player->FFMPEG->codecpar->sample_rate * 2 * 2));
+        if (player->FFMPEG->clock - player->FFMPEG->last_clock >= 1) {
             player->FFMPEG->last_clock = player->FFMPEG->clock;
             player->javaCallBack->callJavaDuration(CHILD_THREAD_CALL,
                                                    static_cast<int>(player->FFMPEG->clock),
                                                    player->FFMPEG->duration);
         }
         player->amplitudeCount++;
-        if (player->amplitudeCount >= 5) {
+        if (player->amplitudeCount >= CALL_BACK_AMPLITUDE_COUNT) {
             player->amplitudeCount = 0;
             int db = player->getPCMAmplitude((char *) (player->sampleBuffer),
                                              soundTouchBufferSize * 4);
@@ -117,7 +115,7 @@ void pcmBufferCallBack2(SLAndroidSimpleBufferQueueItf bf, void *context) {
 
         (*player->openSLES->pcmBufferQueue)->Enqueue(player->openSLES->pcmBufferQueue,
                                                      (char *) player->sampleBuffer,
-                                                     soundTouchBufferSize * 2 * 2);
+                                                     soundTouchBufferSize * 4);
     } else {
         LOGE("play finished")
         if (!player->playState->isExit)

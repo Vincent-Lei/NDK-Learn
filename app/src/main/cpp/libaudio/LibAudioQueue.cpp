@@ -91,5 +91,6 @@ void LibAudioQueue::emptyQueue() {
         avPacket = NULL;
     }
     pthread_mutex_unlock(&mutex_queue);
+    LOGD("--emptyQueue--")
 }
 

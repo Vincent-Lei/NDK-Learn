@@ -8,6 +8,7 @@ package com.lei.ndk.audio;
 public class MusicBean {
     public String name;
     public String path;
+    public boolean inOnTranscoding;
 
     public MusicBean(String name, String path) {
         this.name = name;

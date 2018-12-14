@@ -10,7 +10,6 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -23,6 +22,9 @@ import android.widget.TextView;
 
 import com.lei.ndk.R;
 import com.lei.ndk.util.FileUtil;
+import com.lei.ndk.util.LogUtil;
+import com.sdk.audio.AudioPlayer;
+import com.sdk.audio.transcoding.TranscoderFactory;
 
 import java.io.File;
 import java.text.DecimalFormat;
@@ -33,12 +35,12 @@ import java.util.List;
  * Title：
  * Note：
  */
-public class AudioActivity extends AppCompatActivity implements View.OnClickListener, LeiAudioPlayer.ICallBack {
+public class AudioActivity extends AppCompatActivity implements View.OnClickListener, AudioPlayer.ICallBack {
     private static final String NET_SOURCE = "http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3";
     private static final int PLAY_STATUS_STOPED = 0;
     private static final int PLAY_STATUS_PLAYING = 1;
     private static final int PLAY_STATUS_PAUSE = 2;
-    private LeiAudioPlayer mPlayer;
+    private AudioPlayer mPlayer;
     TextView textView_currentDuration;
     TextView textView_allDuration;
     Button button_audioMute;
@@ -60,7 +62,7 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     int colorMusicName;
     int colorMusicPath;
     int colorPlayStatus;
-    int audioMute = LeiAudioPlayer.Mute.DOUBLE;
+    int audioMute = AudioPlayer.Mute.DOUBLE;
     float pitch = 1.0f, speed = 1.0f;
 
     @Override
@@ -84,11 +86,13 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
         button_recordStatus = findViewById(R.id.btn_start_record);
         button_recordStop = findViewById(R.id.btn_stop_record);
         seekBar_volume = findViewById(R.id.seekBar_volume);
+        seekBar_volume.setProgress(AudioPlayer.DEFAULT_VOLUME_PERCENT);
+
         progressBar_amplitude = findViewById(R.id.pb_amplitude);
         listView = findViewById(R.id.lv_music);
         button_audioMute = findViewById(R.id.btn_mute);
 
-        mPlayer = new LeiAudioPlayer();
+        mPlayer = new AudioPlayer();
         mPlayer.setCallBack(this);
 
 
@@ -193,14 +197,14 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
                 break;
 
             case R.id.btn_mute:
-                if (audioMute == LeiAudioPlayer.Mute.DOUBLE) {
-                    audioMute = LeiAudioPlayer.Mute.LEFT;
+                if (audioMute == AudioPlayer.Mute.DOUBLE) {
+                    audioMute = AudioPlayer.Mute.LEFT;
                     button_audioMute.setText("左声道");
-                } else if (audioMute == LeiAudioPlayer.Mute.LEFT) {
-                    audioMute = LeiAudioPlayer.Mute.RIGHT;
+                } else if (audioMute == AudioPlayer.Mute.LEFT) {
+                    audioMute = AudioPlayer.Mute.RIGHT;
                     button_audioMute.setText("右声道");
-                } else if (audioMute == LeiAudioPlayer.Mute.RIGHT) {
-                    audioMute = LeiAudioPlayer.Mute.DOUBLE;
+                } else if (audioMute == AudioPlayer.Mute.RIGHT) {
+                    audioMute = AudioPlayer.Mute.DOUBLE;
                     button_audioMute.setText("立体声");
                 }
                 mPlayer.setMute(audioMute);
@@ -220,13 +224,13 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
                 mPlayer.setSpeed(speed);
                 break;
             case R.id.btn_start_record:
-                if (mPlayer.isPauseRecording()) {
-                    mPlayer.resumeRecordAAC();
+                if (mPlayer.isTranscodePause()) {
+                    mPlayer.resumeTranscode();
                     button_recordStatus.setText("暂停录音");
                     return;
                 }
-                if (mPlayer.isOnRecording()) {
-                    mPlayer.pauseRecordAAC();
+                if (mPlayer.isTranscoding()) {
+                    mPlayer.pauseTranscode();
                     button_recordStatus.setText("继续录音");
                     return;
                 }
@@ -236,12 +240,12 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
                 int index = fileName.lastIndexOf(".");
                 if (index > 0)
                     fileName = fileName.substring(0, index);
-                File saveDest = FileUtil.getRecordFile(this, fileName, ".aac", true);
-                mPlayer.start2RecordAAC(saveDest);
+                File saveDest = FileUtil.getRecordFile(this, fileName, ".mp3", true);
+                mPlayer.startTranscode(saveDest, TranscoderFactory.TYPE_MP3);
                 button_recordStatus.setText("暂停录音");
                 break;
             case R.id.btn_stop_record:
-                mPlayer.stopRecordAAC();
+                mPlayer.stopTranscode();
                 button_recordStatus.setText("开始录音");
                 break;
         }
@@ -256,7 +260,7 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
             public void run() {
                 seekBar_playDuration.setProgress(0);
                 mPlayer.setDataSource(mMusicFileList.get(mPlaySelection).path);
-                mPlayer.prepared();
+                mPlayer.prepare();
                 mPlayer.setVolume(seekBar_volume.getProgress());
                 mPlayer.start();
                 mPlayStatus = PLAY_STATUS_PLAYING;
@@ -266,7 +270,7 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     }
 
     @Override
-    public void onDurationChanged(int current, int all) {
+    public void onAudioDurationChanged(int current, int all) {
         currentSec = current;
         allSec = all;
         textView_currentDuration.setText(formatTime(current));
@@ -276,12 +280,12 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
     }
 
     @Override
-    public void onAmplitudeChanged(int amplitude) {
+    public void onAudioAmplitudeChanged(int amplitude) {
         progressBar_amplitude.setProgress(amplitude);
     }
 
     @Override
-    public void onPlayFinished() {
+    public void onAudioPlayFinished() {
         if (mMusicFileList == null || mMusicFileList.isEmpty())
             return;
         mPlaySelection++;
@@ -304,6 +308,26 @@ public class AudioActivity extends AppCompatActivity implements View.OnClickList
         else
             stringBuilder.append(secondLeft);
         return stringBuilder.toString();
+    }
+
+    @Override
+    public void onAudioPrepared() {
+
+    }
+
+    @Override
+    public void onAudioWaitLoadData(boolean waiting) {
+
+    }
+
+    @Override
+    public void onAudioError(int code, String msg) {
+
+    }
+
+    @Override
+    public void onAudioTranscodeFinished() {
+        LogUtil.d("--onAudioTranscodeFinished--");
     }
 
     private class MusicAdapter extends BaseAdapter {

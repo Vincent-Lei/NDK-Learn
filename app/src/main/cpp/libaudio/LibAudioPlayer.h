@@ -11,6 +11,7 @@
 #include "SoundTouch.h"
 #include "LibAudioOpenSLES.h"
 #include "LibJavaCallBack.h"
+#define CALL_BACK_AMPLITUDE_COUNT 5
 
 class LibAudioPlayer {
 public:

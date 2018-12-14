@@ -34,6 +34,9 @@
         <activity
             android:name=".opengles.OpenGLESTestActivity"
             android:screenOrientation="portrait" />
+        <activity
+            android:name=".transcode.TranscodeActivity"
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>

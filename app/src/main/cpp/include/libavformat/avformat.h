@@ -31,8 +31,8 @@
  * @defgroup libavf libavformat
  * I/O and Muxing/Demuxing Library
  *
- * Libavformat (lavf) is a library for dealing with various media container
- * formats. Its main two purposes are demuxing - i.e. splitting a media file
+ * Libavformat (lavf) is a library for dealing with various android.media container
+ * formats. Its main two purposes are demuxing - i.e. splitting a android.media file
  * into component streams, and the reverse process of muxing - writing supplied
  * data in a specified container format. It also has an @ref lavf_io
  * "I/O module" which supports a number of protocols for accessing the data (e.g.
@@ -94,14 +94,14 @@
  *
  * @defgroup lavf_decoding Demuxing
  * @{
- * Demuxers read a media file and split it into chunks of data (@em packets). A
+ * Demuxers read a android.media file and split it into chunks of data (@em packets). A
  * @ref AVPacket "packet" contains one or more encoded frames which belongs to a
  * single elementary stream. In the lavf API this process is represented by the
  * avformat_open_input() function for opening a file, av_read_frame() for
  * reading a single packet and finally avformat_close_input(), which does the
  * cleanup.
  *
- * @section lavf_decoding_open Opening a media file
+ * @section lavf_decoding_open Opening a android.media file
  * The minimum information required to open a file is its URL, which
  * is passed to avformat_open_input(), as in the following code:
  * @code
@@ -252,7 +252,7 @@
  *
  * Some of possible use cases:
  * - an "open file" dialog to choose files from a remote location,
- * - a recursive media finder providing a player with an ability to play all
+ * - a recursive android.media finder providing a player with an ability to play all
  * files from a given directory.
  *
  * @subsection lavf_io_dirlist_open Opening a directory
@@ -2050,7 +2050,7 @@ void avformat_free_context(AVFormatContext *s);
 const AVClass *avformat_get_class(void);
 
 /**
- * Add a new stream to a media file.
+ * Add a new stream to a android.media file.
  *
  * When demuxing, it is called by the demuxer in read_header(). If the
  * flag AVFMTCTX_NOHEADER is set in s.ctx_flags, then it may also
@@ -2061,7 +2061,7 @@ const AVClass *avformat_get_class(void);
  * User is required to call avcodec_close() and avformat_free_context() to
  * clean up the allocation by avformat_new_stream().
  *
- * @param s media file handle
+ * @param s android.media file handle
  * @param c If non-NULL, the AVCodecContext corresponding to the new stream
  * will be initialized to use this codec. This is needed for e.g. codec-specific
  * defaults to be set, so codec should be provided if it is known.
@@ -2231,14 +2231,14 @@ attribute_deprecated
 int av_demuxer_open(AVFormatContext *ic);
 
 /**
- * Read packets of a media file to get stream information. This
+ * Read packets of a android.media file to get stream information. This
  * is useful for file formats with no headers such as MPEG. This
  * function also computes the real framerate in case of MPEG-2 repeat
  * frame mode.
  * The logical file position is not changed by this function;
  * examined packets may be buffered for later processing.
  *
- * @param ic media file handle
+ * @param ic android.media file handle
  * @param options  If non-NULL, an ic.nb_streams long array of pointers to
  *                 dictionaries, where i-th member contains options for
  *                 codec corresponding to i-th stream.
@@ -2256,7 +2256,7 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options);
 /**
  * Find the programs which belong to a given stream.
  *
- * @param ic    media file handle
+ * @param ic    android.media file handle
  * @param last  the last found program, the search will start after this
  *              program, or from the beginning if it is NULL
  * @param s     stream index
@@ -2275,7 +2275,7 @@ void av_program_add_stream_index(AVFormatContext *ac, int progid, unsigned int i
  * default decoder for the stream's codec; streams for which no decoder can
  * be found are ignored.
  *
- * @param ic                media file handle
+ * @param ic                android.media file handle
  * @param type              stream type: video, audio, subtitles, etc.
  * @param wanted_stream_nb  user-requested stream number,
  *                          or -1 for automatic selection
@@ -2328,7 +2328,7 @@ int av_read_frame(AVFormatContext *s, AVPacket *pkt);
  * Seek to the keyframe at timestamp.
  * 'timestamp' in 'stream_index'.
  *
- * @param s media file handle
+ * @param s android.media file handle
  * @param stream_index If stream_index is (-1), a default
  * stream is selected, and timestamp is automatically converted
  * from AV_TIME_BASE units to the stream specific time_base.
@@ -2356,7 +2356,7 @@ int av_seek_frame(AVFormatContext *s, int stream_index, int64_t timestamp,
  * keyframes (this may not be supported by all demuxers).
  * If flags contain AVSEEK_FLAG_BACKWARD, it is ignored.
  *
- * @param s media file handle
+ * @param s android.media file handle
  * @param stream_index index of the stream which is used as time base reference
  * @param min_ts smallest acceptable timestamp
  * @param ts target timestamp
@@ -2383,7 +2383,7 @@ int avformat_seek_file(AVFormatContext *s, int stream_index, int64_t min_ts, int
  * This does not flush the AVIOContext (s->pb). If necessary, call
  * avio_flush(s->pb) before calling this function.
  *
- * @param s media file handle
+ * @param s android.media file handle
  * @return >=0 on success, error code otherwise
  */
 int avformat_flush(AVFormatContext *s);
@@ -2425,7 +2425,7 @@ void avformat_close_input(AVFormatContext **s);
 
 /**
  * Allocate the stream private data and write the stream header to
- * an output media file.
+ * an output android.media file.
  *
  * @param s Media file handle, must be allocated with avformat_alloc_context().
  *          Its oformat field must be set to the desired output format;
@@ -2466,7 +2466,7 @@ av_warn_unused_result
 int avformat_init_output(AVFormatContext *s, AVDictionary **options);
 
 /**
- * Write a packet to an output media file.
+ * Write a packet to an output android.media file.
  *
  * This function passes the packet directly to the muxer, without any buffering
  * or reordering. The caller is responsible for correctly interleaving the
@@ -2474,7 +2474,7 @@ int avformat_init_output(AVFormatContext *s, AVDictionary **options);
  * the interleaving should call av_interleaved_write_frame() instead of this
  * function.
  *
- * @param s media file handle
+ * @param s android.media file handle
  * @param pkt The packet containing the data to be written. Note that unlike
  *            av_interleaved_write_frame(), this function does not take
  *            ownership of the packet passed to it (though some muxers may make
@@ -2505,7 +2505,7 @@ int avformat_init_output(AVFormatContext *s, AVDictionary **options);
 int av_write_frame(AVFormatContext *s, AVPacket *pkt);
 
 /**
- * Write a packet to an output media file ensuring correct interleaving.
+ * Write a packet to an output android.media file ensuring correct interleaving.
  *
  * This function will buffer the packets internally as needed to make sure the
  * packets in the output file are properly interleaved in the order of
@@ -2516,7 +2516,7 @@ int av_write_frame(AVFormatContext *s, AVPacket *pkt);
  * knowledge of future packets, improving e.g. the behaviour of the mp4
  * muxer for VFR content in fragmenting mode.
  *
- * @param s media file handle
+ * @param s android.media file handle
  * @param pkt The packet containing the data to be written.
  *            <br>
  *            If the packet is reference-counted, this function will take
@@ -2550,7 +2550,7 @@ int av_write_frame(AVFormatContext *s, AVPacket *pkt);
 int av_interleaved_write_frame(AVFormatContext *s, AVPacket *pkt);
 
 /**
- * Write an uncoded frame to an output media file.
+ * Write an uncoded frame to an output android.media file.
  *
  * The frame must be correctly interleaved according to the container
  * specification; if not, then av_interleaved_write_frame() must be used.
@@ -2561,7 +2561,7 @@ int av_write_uncoded_frame(AVFormatContext *s, int stream_index,
                            AVFrame *frame);
 
 /**
- * Write an uncoded frame to an output media file.
+ * Write an uncoded frame to an output android.media file.
  *
  * If the muxer supports it, this function makes it possible to write an AVFrame
  * structure directly, without encoding it into a packet.
@@ -2588,12 +2588,12 @@ int av_interleaved_write_uncoded_frame(AVFormatContext *s, int stream_index,
 int av_write_uncoded_frame_query(AVFormatContext *s, int stream_index);
 
 /**
- * Write the stream trailer to an output media file and free the
+ * Write the stream trailer to an output android.media file and free the
  * file private data.
  *
  * May only be called after a successful call to avformat_write_header.
  *
- * @param s media file handle
+ * @param s android.media file handle
  * @return 0 if OK, AVERROR_xxx on error
  */
 int av_write_trailer(AVFormatContext *s);
@@ -2626,8 +2626,8 @@ enum AVCodecID av_guess_codec(AVOutputFormat *fmt, const char *short_name,
  * The exact meaning of "currently output" depends on the format.
  * It is mostly relevant for devices that have an internal buffer and/or
  * work in real time.
- * @param s          media file handle
- * @param stream     stream in the media file
+ * @param s          android.media file handle
+ * @param stream     stream in the android.media file
  * @param[out] dts   DTS of the last packet output for the stream, in stream
  *                   time_base units
  * @param[out] wall  absolute time when that packet whas output,

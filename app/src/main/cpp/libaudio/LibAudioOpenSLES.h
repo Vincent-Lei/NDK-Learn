@@ -7,6 +7,7 @@
 #define AUDIO_MUTE_LEFT 1
 #define AUDIO_MUTE_RIFGT 0
 #define AUDIO_MUTE_DOUBLE 2
+#define DEFAULT_VOLUME_PERCENT 50
 
 #include <SLES/OpenSLES.h>
 #include "SLES/OpenSLES_Android.h"
@@ -36,7 +37,7 @@ public:
     //缓冲器队列接口
     SLAndroidSimpleBufferQueueItf pcmBufferQueue = NULL;
 
-    int volumePercent = 50;
+    int volumePercent = DEFAULT_VOLUME_PERCENT;
     int audioMute = AUDIO_MUTE_DOUBLE;
 
     LibAudioOpenSLES();

@@ -412,7 +412,7 @@ struct AVFilterLink {
     AVFilterContext *dst;       ///< dest filter
     AVFilterPad *dstpad;        ///< input pad on the dest filter
 
-    enum AVMediaType type;      ///< filter media type
+    enum AVMediaType type;      ///< filter android.media type
 
     /* These parameters apply only to video */
     int w;                      ///< agreed upon image width
@@ -422,7 +422,7 @@ struct AVFilterLink {
     uint64_t channel_layout;    ///< channel layout of current buffer (see libavutil/channel_layout.h)
     int sample_rate;            ///< samples per second
 
-    int format;                 ///< agreed upon media format
+    int format;                 ///< agreed upon android.media format
 
     /**
      * Define the time base used by the PTS of the frames/samples
@@ -646,7 +646,7 @@ attribute_deprecated
 void avfilter_link_set_closed(AVFilterLink *link, int closed);
 
 /**
- * Negotiate the media format, dimensions, etc of all inputs to a filter.
+ * Negotiate the android.media format, dimensions, etc of all inputs to a filter.
  *
  * @param filter the filter to negotiate the properties for its inputs
  * @return       zero on successful negotiation

@@ -14,6 +14,14 @@ LibAudioFFMPEG::LibAudioFFMPEG(LibAudioSource *audioSource, LibAudioPlayState *p
 LibAudioFFMPEG::~LibAudioFFMPEG() {
 }
 
+int avformat_callback(void *ctx) {
+    LibAudioFFMPEG *FFMPEG = (LibAudioFFMPEG *) (ctx);
+    if (FFMPEG->playState->isExit) {
+        return AVERROR_EOF;
+    }
+    return 0;
+}
+
 int LibAudioFFMPEG::prepare() {
     if (playState->isExit) {
         LOGE("exit before prepare");
@@ -28,6 +36,8 @@ int LibAudioFFMPEG::prepare() {
         LOGE("can not init AVFormatContext");
         return -1;
     }
+    pFormatCtx->interrupt_callback.callback = avformat_callback;
+    pFormatCtx->interrupt_callback.opaque = this;
     if (avformat_open_input(&pFormatCtx, audioSource->dataSource, NULL, NULL) != 0) {
         LOGE("can not open %s", audioSource->dataSource);
         return -1;
@@ -156,7 +166,7 @@ void LibAudioFFMPEG::release() {
         LOGD("free pFormatCtx")
     }
     if (pCodecCtx != NULL) {
-//        avcodec_flush_buffers(pCodecCtx);
+        avcodec_flush_buffers(pCodecCtx);
         avcodec_free_context(&pCodecCtx);
         pCodecCtx = NULL;
         codecpar = NULL;
