@@ -67,16 +67,17 @@ void *audio_decode_thread(void *data) {
 
 void LibAudioPlayer::resetForPrepare() {
     playState->isExit = true;
+    if (openSLES)
+        openSLES->releasePlayer();
     if (audioSource) {
         pthread_join(audioSource->thread_prepare, NULL);
         pthread_join(audioSource->thread_decode, NULL);
         pthread_join(audioSource->thread_start, NULL);
         audioSource->release();
     }
+    LOGD("size = %d",audioSource->queue->getQueueSize())
     if (FFMPEG)
         FFMPEG->release();
-    if (openSLES)
-        openSLES->releasePlayer();
     playState->init();
     isSoundTouchFinished = false;
 }

@@ -4,6 +4,7 @@ include_directories(src/main/cpp/globle)
 include_directories(src/main/cpp/include)
 include_directories(src/main/cpp/audio)
 include_directories(src/main/cpp/libaudio)
+include_directories(src/main/cpp/libvideo)
 include_directories(src/main/cpp/soundtouch/include)
 include_directories(src/main/cpp/soundtouch/SoundTouch)
 include_directories(src/main/cpp/lamemp3)
@@ -14,6 +15,7 @@ file(GLOB native_cpp_files "${CMAKE_SOURCE_DIR}/src/main/cpp/*.cpp")
 file(GLOB native_c_files "${CMAKE_SOURCE_DIR}/src/main/cpp/*.c")
 file(GLOB native_globle_files "${CMAKE_SOURCE_DIR}/src/main/cpp/globle/*.cpp")
 file(GLOB native_lib_audio_files "${CMAKE_SOURCE_DIR}/src/main/cpp/libaudio/*.cpp")
+file(GLOB native_lib_video_files "${CMAKE_SOURCE_DIR}/src/main/cpp/libvideo/*.cpp")
 file(GLOB native_soundtouch_files "${CMAKE_SOURCE_DIR}/src/main/cpp/soundtouch/SoundTouch/*.cpp")
 file(GLOB native_lamemp3_1_files "${CMAKE_SOURCE_DIR}/src/main/cpp/lamemp3/*.cpp")
 file(GLOB native_lamemp3_2_files "${CMAKE_SOURCE_DIR}/src/main/cpp/lamemp3/lib/*.c")
@@ -24,6 +26,7 @@ add_library(native-lib SHARED
         ${native_cpp_files}
         ${native_c_files}
         ${native_lib_audio_files}
+        ${native_lib_video_files}
         ${native_lamemp3_1_files}
         ${native_lamemp3_2_files}
         ${native_soundtouch_files})

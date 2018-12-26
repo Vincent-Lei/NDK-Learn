@@ -11,6 +11,7 @@ import com.lei.ndk.audio.AudioActivity;
 import com.lei.ndk.nativetest.NativeTestActivity;
 import com.lei.ndk.opengles.OpenGLESTestActivity;
 import com.lei.ndk.transcode.TranscodeActivity;
+import com.lei.ndk.video.VideoActivity;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -37,6 +38,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.btn_transcode:
                 startActivity(new Intent(this, TranscodeActivity.class));
+                break;
+            case R.id.btn_video:
+                startActivity(new Intent(this, VideoActivity.class));
                 break;
         }
     }

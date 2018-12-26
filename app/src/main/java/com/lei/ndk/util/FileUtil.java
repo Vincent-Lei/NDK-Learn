@@ -16,6 +16,7 @@ import java.io.InputStream;
  */
 public class FileUtil {
     public static final String MUSIC_FOLDER = "Music";
+    public static final String VIDEO_FOLDER = "Movies";
 
     public static String getMusicFolder(Context context) {
         String path = FileUtil.getRootDir() + File.separator + MUSIC_FOLDER;
@@ -25,8 +26,29 @@ public class FileUtil {
         return path;
     }
 
+    public static String getVideoFolder(Context context) {
+        String path = FileUtil.getRootDir() + File.separator + VIDEO_FOLDER;
+        File file = new File(path);
+        if (!file.exists())
+            file.mkdirs();
+        return path;
+    }
+
     public static File writeLocalAssetFileToMusic(Context context, String assetName) {
         File file = new File(getMusicFolder(context) + File.separator + assetName);
+        if (file.exists())
+            return file;
+        try {
+            InputStream inputStream = context.getAssets().open(assetName);
+            writeFileToLocal(inputStream, file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return file;
+    }
+
+    public static File writeLocalAssetFileToVideo(Context context, String assetName) {
+        File file = new File(getVideoFolder(context) + File.separator + assetName);
         if (file.exists())
             return file;
         try {

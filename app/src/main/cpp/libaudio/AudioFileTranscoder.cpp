@@ -7,7 +7,6 @@
 AudioFileTranscoder::AudioFileTranscoder(JNIEnv *env) {
     this->env = env;
     av_register_all();
-    avformat_network_init();
 }
 
 AudioFileTranscoder::~AudioFileTranscoder() {

@@ -4,7 +4,8 @@
 
 #ifndef NDK_LEARN_JNI_ONLOAD_H
 #define NDK_LEARN_JNI_ONLOAD_H
-
+#define MAIN_THREAD_CALL 1
+#define CHILD_THREAD_CALL 2
 #include "jni.h"
 #include "native-log.h"
 

@@ -4,8 +4,7 @@
 
 #ifndef NDK_LEARN_LIBJAVACALLBACK_H
 #define NDK_LEARN_LIBJAVACALLBACK_H
-#define MAIN_THREAD_CALL 1
-#define CHILD_THREAD_CALL 2
+
 
 #include "jni.h"
 #include "../globle/jni-onLoad.h"
