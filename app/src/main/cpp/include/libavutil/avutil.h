@@ -86,7 +86,7 @@
  * libavutil is designed to be modular. In most cases, in order to use the
  * functions provided by one component of libavutil you must explicitly include
  * the specific header containing that feature. If you are only using
- * android.media-related components, you could simply include libavutil/avutil.h, which
+ * media-related components, you could simply include libavutil/avutil.h, which
  * brings in most of the "core" components.
  *
  * @{

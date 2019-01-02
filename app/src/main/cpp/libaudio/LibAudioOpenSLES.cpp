@@ -158,6 +158,8 @@ void LibAudioOpenSLES::resume() {
 void LibAudioOpenSLES::releasePlayer() {
     stop();
     if (pcmPlayerObject) {
+        if (pcmBufferQueue)
+            (*pcmBufferQueue)->Clear(pcmBufferQueue);
         (*pcmPlayerObject)->Destroy(pcmPlayerObject);
         pcmPlayerObject = NULL;
         pcmPlayerPlay = NULL;

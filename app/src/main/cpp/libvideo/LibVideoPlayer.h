@@ -35,6 +35,17 @@ public:
     void start();
 
     int resampleAudioPacket();
+
+    void hardwareCodecVideo();
+
+    void softwareCodecVideo();
+
+    void stop();
+
+    void destory();
+
+    void seek(int second);
+
 };
 
 

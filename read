@@ -2,3 +2,4 @@ javap -classpath app\build\intermediates\javac\debug\compileDebugJavaWithJavac\c
 
 
 javap -classpath app\build\intermediates\javac\debug\compileDebugJavaWithJavac\classes -s com.lei.ndk.audio.LeiAudioPlayer
+javap -classpath app\build\intermediates\javac\debug\compileDebugJavaWithJavac\classes -s com.sdk.video.VideoPlayer

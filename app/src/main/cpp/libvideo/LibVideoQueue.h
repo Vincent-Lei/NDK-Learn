@@ -4,7 +4,7 @@
 
 #ifndef NDK_LEARN_LIBVIDEOQUEUE_H
 #define NDK_LEARN_LIBVIDEOQUEUE_H
-#define MAX_VICEO_QUEUE_SIZE 60
+#define MAX_QUEUE_SIZE 30
 extern "C" {
 #include "libavcodec/avcodec.h"
 };

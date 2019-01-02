@@ -39,3 +39,20 @@ Java_com_sdk_video_VideoPlayer_nativeStart(JNIEnv *env, jobject instance, jlong 
     if (player != NULL)
         player->start();
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_sdk_video_VideoPlayer_nativeDestory(JNIEnv *env, jobject instance, jlong ptr) {
+
+    LibVideoPlayer *player = (LibVideoPlayer *) (ptr);
+    if (player != NULL)
+        player->destory();
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_sdk_video_VideoPlayer_nativeSeek(JNIEnv *env, jobject instance, jlong ptr, jint second) {
+    LibVideoPlayer *player = (LibVideoPlayer *) (ptr);
+    if (player != NULL)player->seek(second);
+
+}

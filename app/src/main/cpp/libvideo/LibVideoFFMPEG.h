@@ -10,11 +10,13 @@
 #define V_READ_FRAME_NONE -3
 #define V_READ_AUDIO_STREAM 1
 #define V_READ_VIDEO_STREAM 2
-#define AV_SYNC_THRESHOLD_MIN 0.04
-#define AV_NOSYNC_THRESHOLD 10.0
+#define SELECTED_CODEC_TYPE_SOFTEARE 1
+#define SELECTED_CODEC_TYPE_HARDEARE 2
+
 
 #include "LibVideoSource.h"
 #include "LibVideoPlayState.h"
+#include "LibVideoJavaCallBack.h"
 #include <unistd.h>
 
 extern "C" {
@@ -31,6 +33,7 @@ class LibVideoFFMPEG {
 public:
     LibVideoSource *videoSource = NULL;
     LibVideoPlayState *playState = NULL;
+    LibVideoJavaCallBack *javaCallBack = NULL;
     AVFormatContext *pFormatCtx = NULL;
     AVCodecContext *pAudioCodecCtx = NULL;
     AVCodecParameters *audioCodecpar = NULL;
@@ -43,6 +46,7 @@ public:
 
     double audioClock = 0;
     double videoClock = 0;
+    double lastVideoClock = 0;
     double delayTime = 0;
     double defaultVideoDelayTime = 0;
 
@@ -51,7 +55,12 @@ public:
 
     bool isCurrentResampleAudioFrameFinished = true;
 
-    LibVideoFFMPEG(LibVideoSource *videoSource, LibVideoPlayState *playState);
+    int selectedCodecType = SELECTED_CODEC_TYPE_SOFTEARE;
+    const AVBitStreamFilter *bsFilter = NULL;
+    AVBSFContext *pAvbsfContext = NULL;
+
+    LibVideoFFMPEG(LibVideoSource *videoSource, LibVideoPlayState *playState,
+                   LibVideoJavaCallBack *javaCallBack);
 
     ~LibVideoFFMPEG();
 
@@ -61,13 +70,21 @@ public:
 
     int sendAudioPacket(AVPacket *avPacket);
 
+    int sendBsfPacket(AVPacket *avPacket);
+
+    int receiveBsfPacket(AVPacket *avPacket);
+
     int resampleAudioFrame(AVFrame *avFrame, uint8_t *resampleBuff);
 
-    int resampleVideoFrame(AVPacket *avPacket,AVFrame **avFrame_yuv,uint8_t *buffer,long *videoDelayTime);
+    int resampleVideoFrame(AVPacket *avPacket, AVFrame **avFrame_yuv, uint8_t *buffer,
+                           unsigned int *videoDelayTime);
+    void resetForSeek();
+
+    int initHardwareCodec();
 
     void release();
 
-    double getVideo2AudioFrameDiffTime(AVFrame *avFrame);
+    double getVideo2AudioFrameDiffTime(AVFrame *avFrame, AVPacket *avPacket);
 
     double getFrameShouldDelayTimeByDiff(double diff);
 };

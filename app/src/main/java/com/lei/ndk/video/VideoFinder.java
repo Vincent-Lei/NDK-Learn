@@ -2,7 +2,6 @@ package com.lei.ndk.video;
 
 import android.content.Context;
 
-import com.lei.ndk.audio.MusicBean;
 import com.lei.ndk.util.FileUtil;
 
 import java.io.File;
@@ -18,7 +17,7 @@ public class VideoFinder {
 
 
     public static List<VideoBean> findLocalVideo(Context context) {
-        FileUtil.writeLocalAssetFileToVideo(context, "video_1.mp4");
+        FileUtil.writeLocalAssetFileToVideo(context, "熊猫人.mp4");
         List<VideoBean> videoFileList = new ArrayList<>();
         String path = FileUtil.getVideoFolder(context);
         File file = new File(path);
@@ -37,7 +36,7 @@ public class VideoFinder {
     private static boolean isFileIsVideo(File file) {
         if (file != null && file.exists() && file.getName() != null) {
             String name = file.getName();
-            return name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".rmvb");
+            return name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".rmvb")|| name.endsWith(".mkv");
         }
         return false;
     }

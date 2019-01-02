@@ -121,3 +121,4 @@ Java_com_sdk_audio_lame_SimpleLame_native_1pcmToMp3(JNIEnv *env, jclass type, ji
     env->ReleaseStringUTFChars(fileDest_, fileDest);
     return 0;
 }
+

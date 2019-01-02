@@ -4,9 +4,11 @@
 
 #include "LibVideoFFMPEG.h"
 
-LibVideoFFMPEG::LibVideoFFMPEG(LibVideoSource *videoSource, LibVideoPlayState *playState) {
+LibVideoFFMPEG::LibVideoFFMPEG(LibVideoSource *videoSource, LibVideoPlayState *playState,
+                               LibVideoJavaCallBack *javaCallBack) {
     this->videoSource = videoSource;
     this->playState = playState;
+    this->javaCallBack = javaCallBack;
 
     av_register_all();
     avformat_network_init();
@@ -94,39 +96,67 @@ int LibVideoFFMPEG::prepared() {
         LOGE("can not find video stream");
         return -1;
     }
-
-
-    AVCodec *pCodec = NULL;
-    switch (videoCodecpar->codec_id) {
-        case AV_CODEC_ID_H264:
-            pCodec = avcodec_find_decoder_by_name("h264_mediacodec");//硬解码264
-            break;
-        case AV_CODEC_ID_MPEG4:
-            pCodec = avcodec_find_decoder_by_name("mpeg4_mediacodec");//硬解码mpeg4
-            break;
-        case AV_CODEC_ID_HEVC:
-            pCodec = avcodec_find_decoder_by_name("hevc_mediacodec");//硬解码265
-            break;
+    if (getCodecCtx(videoCodecpar, &pVideoCodecCtx) != 0) {
+        LOGE("can not find video CodecCtx");
+        return -1;
     }
 
-    if (pCodec != NULL) {
-        LOGD("video 硬解码")
-        pVideoCodecCtx = avcodec_alloc_context3(pCodec);
-    }else{
-        LOGD("video 软解码")
-        if (getCodecCtx(videoCodecpar, &pVideoCodecCtx) != 0) {
-            LOGE("can not find video CodecCtx");
-            return -1;
+//    const AVBitStreamFilter *f = NULL;
+//    void *i = 0;
+//    while ((f = av_bsf_next(&i))) {
+//            LOGD("filterName = %s", f->name);
+//            if(f->codec_ids)
+//                LOGD("%d",*f->codec_ids)
+//    }
+
+    if (javaCallBack->callCheckIsHardwareCodecEnable(pVideoCodecCtx->codec->name)) {
+        int ret = initHardwareCodec();
+        if (ret == 0) {
+            LOGD("video enable hardware codec")
+            selectedCodecType = SELECTED_CODEC_TYPE_HARDEARE;
+            javaCallBack->onCallInitHardwareCodec(pVideoCodecCtx->codec->name,
+                                                  pVideoCodecCtx->width, pVideoCodecCtx->height,
+                                                  pVideoCodecCtx->extradata_size,
+                                                  pVideoCodecCtx->extradata_size,
+                                                  pVideoCodecCtx->extradata,
+                                                  pVideoCodecCtx->extradata);
+        } else {
+            LOGD("video cannot hardware codec")
+            selectedCodecType = SELECTED_CODEC_TYPE_SOFTEARE;
         }
     }
 
-    LOGD("videoWidth = %d", pVideoCodecCtx->width)
-    LOGD("videoHeight = %d", pVideoCodecCtx->height)
     if (stream_index_audio != STREAM_NO_FOUND) {
         getCodecCtx(audioCodecpar, &pAudioCodecCtx);
     } else
         LOGE("can not find audio stream");
     LOGD("prepare success")
+    return 0;
+}
+
+int LibVideoFFMPEG::initHardwareCodec() {
+    const char *codecName = pVideoCodecCtx->codec->name;
+    LOGD("codecName  =%s", codecName);
+    if (strcasecmp(codecName, "h264") == 0) {
+        bsFilter = av_bsf_get_by_name("h264_mp4toannexb");
+    } else if (strcasecmp(codecName, "h265") == 0) {
+        bsFilter = av_bsf_get_by_name("hevc_mp4toannexb");
+    }
+    if (bsFilter == NULL)
+        return -1;
+    if (av_bsf_alloc(bsFilter, &pAvbsfContext) != 0)
+        return -1;
+    if (avcodec_parameters_copy(pAvbsfContext->par_in, videoCodecpar) < 0) {
+        av_bsf_free(&pAvbsfContext);
+        pAvbsfContext = NULL;
+        return -1;
+    }
+    if (av_bsf_init(pAvbsfContext) != 0) {
+        av_bsf_free(&pAvbsfContext);
+        pAvbsfContext = NULL;
+        return -1;
+    }
+    pAvbsfContext->time_base_in = videoTimeBase;
     return 0;
 }
 
@@ -230,19 +260,26 @@ void LibVideoFFMPEG::release() {
         videoCodecpar = NULL;
         LOGD("free pCodecCtx")
     }
+    if (pAvbsfContext) {
+        av_bsf_free(&pAvbsfContext);
+        pAvbsfContext = NULL;
+    }
+
     stream_index_audio = STREAM_NO_FOUND;
     stream_index_video = STREAM_NO_FOUND;
     audioDuration = 0;
     videoDuration = 0;
     audioClock = 0;
     videoClock = 0;
+    lastVideoClock = 0;
     isCurrentResampleAudioFrameFinished = true;
+    selectedCodecType = SELECTED_CODEC_TYPE_SOFTEARE;
 }
 
 
 int
 LibVideoFFMPEG::resampleVideoFrame(AVPacket *avPacket, AVFrame **avFrame_yuv, uint8_t *buffer,
-                                   long *videoDelayTime) {
+                                   unsigned int *videoDelayTime) {
     if (avcodec_send_packet(pVideoCodecCtx, avPacket) != 0)
         return -1;
     AVFrame *avFrame = av_frame_alloc();
@@ -258,16 +295,15 @@ LibVideoFFMPEG::resampleVideoFrame(AVPacket *avPacket, AVFrame **avFrame_yuv, ui
 //        *videoDelayTime = static_cast<int>(getFrameShouldDelayTimeByDiff(diff) * 1000000);
 //        return 0;
 //    }
-    double diff = getVideo2AudioFrameDiffTime(avFrame);
-    if (diff > 0) {
-        LOGD("drop frame--");
-        av_frame_free(&avFrame);
-        av_free(avFrame);
-        avFrame = NULL;
-        return -1;
-    }
-    *videoDelayTime = static_cast<long>(getFrameShouldDelayTimeByDiff(diff) * 1000000);
-    LOGD("videoDelayTime =%d", *videoDelayTime);
+    double diff = getVideo2AudioFrameDiffTime(avFrame, NULL);
+//    if (diff > 0.5) {
+//        LOGD("drop frame--");
+//        av_frame_free(&avFrame);
+//        av_free(avFrame);
+//        avFrame = NULL;
+//        return -1;
+//    }
+    *videoDelayTime = static_cast<unsigned int>(getFrameShouldDelayTimeByDiff(diff) * 1000000);
     AVFrame *pFrameYUV420P = av_frame_alloc();
     av_image_fill_arrays(
             pFrameYUV420P->data,
@@ -333,8 +369,14 @@ LibVideoFFMPEG::resampleVideoFrame(AVPacket *avPacket, AVFrame **avFrame_yuv, ui
     return 0;
 }
 
-double LibVideoFFMPEG::getVideo2AudioFrameDiffTime(AVFrame *avFrame) {
-    double pts = av_frame_get_best_effort_timestamp(avFrame);
+double LibVideoFFMPEG::getVideo2AudioFrameDiffTime(AVFrame *avFrame, AVPacket *avPacket) {
+    double pts = 0;
+    if (avFrame != NULL) {
+        pts = av_frame_get_best_effort_timestamp(avFrame);
+    }
+    if (avPacket != NULL) {
+        pts = avPacket->pts;
+    }
     if (pts == AV_NOPTS_VALUE) {
         pts = 0;
     }
@@ -378,3 +420,18 @@ double LibVideoFFMPEG::getFrameShouldDelayTimeByDiff(double diff) {
     }
     return delayTime;
 }
+
+int LibVideoFFMPEG::sendBsfPacket(AVPacket *avPacket) {
+    return av_bsf_send_packet(pAvbsfContext, avPacket);
+}
+
+int LibVideoFFMPEG::receiveBsfPacket(AVPacket *avPacket) {
+    return av_bsf_receive_packet(pAvbsfContext, avPacket);
+}
+
+void LibVideoFFMPEG::resetForSeek() {
+    videoClock = 0;
+    lastVideoClock = 0;
+    audioClock = 0;
+}
+
