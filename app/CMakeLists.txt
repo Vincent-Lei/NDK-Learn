@@ -69,6 +69,7 @@ set_target_properties(avutil
         PROPERTIES IMPORTED_LOCATION
         ${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libavutil.so)
 
+
 add_library(postproc SHARED IMPORTED)
 set_target_properties(postproc
         PROPERTIES IMPORTED_LOCATION

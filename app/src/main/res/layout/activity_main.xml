@@ -38,4 +38,10 @@
         android:layout_height="40dp"
         android:onClick="onClick"
         android:text="视频播放" />
+    <Button
+        android:id="@+id/btn_pthread_test"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:onClick="onClick"
+        android:text="PTHREAD_TEST" />
 </LinearLayout>
